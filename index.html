@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SUPER-BILLING — Advanced ISP Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#070b12;--bg2:#0c1220;--bg3:#111827;--bg4:#1a2438;--bg5:#202d42;
+  --border:#1e2d45;--border2:#2a3f5f;--border3:#3a5278;
+  --text:#f0f4ff;--text2:#8da3c4;--text3:#4a6080;
+  --cyan:#00d4ff;--cyan2:#0099cc;--cyan3:#006699;
+  --gold:#f5c842;--gold2:#c49a1a;
+  --green:#00e676;--green2:#00b352;
+  --red:#ff4757;--red2:#cc2233;
+  --purple:#a855f7;--purple2:#7c3aed;
+  --teal:#00bfa5;--teal2:#00897b;
+  --r:6px;--rl:10px;--rxl:16px
+}
+body{background:var(--bg);color:var(--text);font-family:'Instrument Sans',system-ui,sans-serif;font-size:13px;min-height:100vh;overflow-x:hidden}
+
+/* SCANLINE EFFECT */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,212,255,0.015) 2px,rgba(0,212,255,0.015) 4px);pointer-events:none;z-index:9999}
+
+/* TOPBAR */
+.topbar{background:rgba(12,18,32,0.95);border-bottom:1px solid var(--border2);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.logo-wrap{display:flex;align-items:center;gap:14px}
+.logo-icon{width:36px;height:36px;background:var(--cyan);border-radius:8px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.logo-icon::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.3),transparent)}
+.logo-icon svg{position:relative;z-index:1}
+.logo-text{display:flex;flex-direction:column;line-height:1}
+.logo-main{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.5px}
+.logo-main span{color:var(--cyan)}
+.logo-sub{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:2px;font-family:'JetBrains Mono',monospace}
+.top-right{display:flex;align-items:center;gap:10px}
+.status-pill{display:flex;align-items:center;gap:6px;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);border-radius:20px;padding:5px 12px;font-size:11px;color:var(--green);font-family:'JetBrains Mono',monospace}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 6px var(--green)}50%{opacity:0.4;box-shadow:none}}
+.info-pill{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace}
+.clock-pill{background:var(--bg4);border:1px solid var(--border2);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:500;color:var(--cyan);font-family:'JetBrains Mono',monospace}
+
+/* SIDEBAR + LAYOUT */
+.layout{display:flex;min-height:calc(100vh - 58px)}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);flex-shrink:0;padding:20px 0;position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto}
+.main{flex:1;padding:24px;overflow-x:hidden;min-width:0}
+
+/* NAV */
+.nav-section{margin-bottom:6px;padding:0 14px}
+.nav-label{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-bottom:8px;margin-top:14px;padding-left:6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;transition:all 0.15s;color:var(--text3);font-size:12px;font-weight:500;border:1px solid transparent;margin-bottom:2px}
+.nav-item:hover{background:var(--bg3);color:var(--text2);border-color:var(--border)}
+.nav-item.active{background:rgba(0,212,255,0.08);color:var(--cyan);border-color:rgba(0,212,255,0.2)}
+.nav-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 6px;font-family:'JetBrains Mono',monospace}
+.nav-badge.cyan{background:rgba(0,212,255,0.15);color:var(--cyan);border:1px solid rgba(0,212,255,0.2)}
+.sidebar-footer{padding:14px;border-top:1px solid var(--border);margin-top:auto}
+.sidebar-version{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;text-align:center}
+
+/* PAGES */
+.page{display:none;animation:fadeIn 0.2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* PAGE HEADER */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px}
+.page-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--text);line-height:1}
+.page-sub{font-size:11px;color:var(--text3);margin-top:5px;font-family:'JetBrains Mono',monospace}
+.page-actions{display:flex;gap:8px;align-items:center}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px;position:relative;overflow:hidden;cursor:default;transition:border-color 0.2s}
+.stat-card:hover{border-color:var(--border2)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.cyan::before{background:var(--cyan)}
+.stat-card.gold::before{background:var(--gold)}
+.stat-card.red::before{background:var(--red)}
+.stat-card.green::before{background:var(--green)}
+.stat-glow{position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:0.04}
+.stat-card.cyan .stat-glow{background:var(--cyan)}
+.stat-card.gold .stat-glow{background:var(--gold)}
+.stat-card.red .stat-glow{background:var(--red)}
+.stat-card.green .stat-glow{background:var(--green)}
+.stat-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;font-family:'JetBrains Mono',monospace}
+.stat-val{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;line-height:1;margin-bottom:8px}
+.stat-card.cyan .stat-val{color:var(--cyan)}
+.stat-card.gold .stat-val{color:var(--gold)}
+.stat-card.red .stat-val{color:var(--red)}
+.stat-card.green .stat-val{color:var(--green)}
+.stat-sub{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px}
+.stat-arrow{font-size:10px}
+.up .stat-arrow{color:var(--green)}.dn .stat-arrow{color:var(--red)}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:20px;margin-bottom:14px;position:relative}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace}
+.card-actions{display:flex;gap:6px}
+
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g2e{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3e{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* FORMS */
+.form-section{margin-bottom:20px}
+.form-section-title{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--cyan);font-family:'JetBrains Mono',monospace;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(0,212,255,0.1)}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.fg label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;font-family:'JetBrains Mono',monospace}
+.fg input,.fg select,.fg textarea{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;font-size:13px;color:var(--text);outline:none;transition:all 0.15s;font-family:'Instrument Sans',sans-serif}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--cyan2);background:var(--bg4)}
+.fg select option{background:var(--bg3);color:var(--text)}
+.fg textarea{resize:vertical;min-height:60px}
+.fg input::placeholder{color:var(--text3)}
+
+/* SERIAL BADGE */
+.serial-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);border-radius:6px;padding:7px 14px;font-size:11px;color:var(--cyan);font-family:'JetBrains Mono',monospace;margin-bottom:16px}
+.serial-pulse{width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:blink 1.5s infinite}
+
+/* BADGES */
+.badge{padding:3px 10px;border-radius:4px;font-size:10px;font-weight:600;font-family:'JetBrains Mono',monospace;letter-spacing:0.3px}
+.b-paid{background:rgba(0,230,118,0.1);color:#00e676;border:1px solid rgba(0,230,118,0.2)}
+.b-unpaid{background:rgba(255,71,87,0.1);color:#ff4757;border:1px solid rgba(255,71,87,0.2)}
+.b-partial{background:rgba(245,200,66,0.1);color:#f5c842;border:1px solid rgba(245,200,66,0.2)}
+.b-active{background:rgba(0,191,165,0.1);color:#00bfa5;border:1px solid rgba(0,191,165,0.2)}
+.b-inactive{background:rgba(74,96,128,0.2);color:#4a6080;border:1px solid rgba(74,96,128,0.3)}
+
+/* BUTTONS */
+.btn{padding:8px 16px;border-radius:var(--r);border:1px solid var(--border2);font-size:12px;cursor:pointer;font-weight:500;transition:all 0.15s;background:var(--bg3);color:var(--text2);font-family:'Instrument Sans',sans-serif;letter-spacing:0.2px}
+.btn:hover{background:var(--bg4);color:var(--text);border-color:var(--border3)}
+.btn:active{transform:scale(0.98)}
+.btn-cyan{background:rgba(0,212,255,0.1);border-color:rgba(0,212,255,0.3);color:var(--cyan)}
+.btn-cyan:hover{background:rgba(0,212,255,0.2)}
+.btn-green{background:rgba(0,230,118,0.1);border-color:rgba(0,230,118,0.3);color:var(--green)}
+.btn-green:hover{background:rgba(0,230,118,0.2)}
+.btn-gold{background:rgba(245,200,66,0.1);border-color:rgba(245,200,66,0.3);color:var(--gold)}
+.btn-gold:hover{background:rgba(245,200,66,0.2)}
+.btn-red{background:rgba(255,71,87,0.1);border-color:rgba(255,71,87,0.3);color:var(--red)}
+.btn-red:hover{background:rgba(255,71,87,0.2)}
+.btn-solid-cyan{background:var(--cyan);border-color:var(--cyan);color:#000;font-weight:600}
+.btn-solid-cyan:hover{background:#00bbdd}
+.btn-sm{padding:4px 10px;font-size:10px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{background:var(--bg3);padding:10px 14px;text-align:left;font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.tbl td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text2);font-size:12px}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tbody tr{transition:background 0.1s}
+.tbl tbody tr:hover td{background:rgba(0,212,255,0.03);color:var(--text)}
+.tbl .mono{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan)}
+
+/* USER ROW */
+.urow{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);transition:background 0.1s}
+.urow:last-child{border-bottom:none}
+.urow:hover{background:rgba(0,212,255,0.02)}
+.av{width:38px;height:38px;border-radius:10px;background:var(--bg4);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--cyan);flex-shrink:0;font-family:'Syne',sans-serif}
+.uinfo{flex:1;min-width:0}
+.uname{font-size:13px;font-weight:600;color:var(--text)}
+.umeta{font-size:11px;color:var(--text3);margin-top:2px;font-family:'JetBrains Mono',monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* UPLOAD */
+.upload-box{border:1px dashed var(--border2);border-radius:var(--r);padding:22px;text-align:center;background:var(--bg3);cursor:pointer;transition:all 0.2s}
+.upload-box:hover,.upload-box.has-file{border-color:var(--cyan2);background:rgba(0,212,255,0.03)}
+.upload-box.has-file{border-style:solid}
+.upload-icon{width:38px;height:38px;background:var(--bg4);border-radius:8px;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border2)}
+
+/* INVOICE */
+.inv-preview{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:24px;position:relative;overflow:hidden}
+.inv-preview::before{content:'INVOICE';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-family:'Syne',sans-serif;font-size:80px;font-weight:900;color:rgba(0,212,255,0.03);pointer-events:none;white-space:nowrap;letter-spacing:10px}
+.inv-head{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.inv-co{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text)}
+.inv-co span{color:var(--cyan)}
+.inv-tagline{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:3px}
+.inv-no{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--cyan);font-weight:500}
+.inv-line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px}
+.inv-line:last-of-type{border-bottom:none}
+.inv-line .lbl{color:var(--text3)}
+.inv-line .val{color:var(--text);font-family:'JetBrains Mono',monospace}
+.inv-total-row{display:flex;justify-content:space-between;padding:14px 16px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);border-radius:var(--r);margin-top:12px}
+.inv-total-lbl{font-size:13px;font-weight:600;color:var(--text)}
+.inv-total-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--cyan)}
+
+/* MINI STATS */
+.mini-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.mini{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.mini-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;font-family:'JetBrains Mono',monospace}
+.mini-val{font-family:'Syne',sans-serif;font-size:18px;font-weight:700}
+
+/* SEARCH */
+.search-bar{display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+.search-inp{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:9px 14px;font-size:13px;color:var(--text);outline:none;font-family:'Instrument Sans',sans-serif;transition:border 0.15s}
+.search-inp:focus{border-color:var(--cyan2)}
+.search-inp::placeholder{color:var(--text3)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--cyan2);color:var(--text);padding:12px 20px;border-radius:var(--r);font-size:13px;z-index:9999;transform:translateX(140%);transition:transform 0.3s cubic-bezier(.34,1.56,.64,1);max-width:360px;font-family:'JetBrains Mono',monospace;line-height:1.5}
+.toast.show{transform:translateX(0)}
+.toast.err{border-color:var(--red)}
+.toast.ok{border-color:var(--green)}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rxl);padding:28px;width:580px;max-width:95vw;max-height:88vh;overflow-y:auto;animation:fadeIn 0.2s ease}
+
+/* GS SETUP */
+.gs-setup-card{background:rgba(0,191,165,0.04);border:1px solid rgba(0,191,165,0.15);border-radius:var(--rl);padding:20px;margin-bottom:16px}
+.gs-step{display:flex;gap:14px;margin-bottom:16px;align-items:flex-start}
+.gs-step:last-child{margin-bottom:0}
+.gs-num{width:28px;height:28px;border-radius:6px;background:var(--teal2);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.gs-body{font-size:12px;color:var(--text2);line-height:1.7}
+.gs-body strong{color:var(--text)}
+.gs-body code{background:var(--bg4);padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--teal)}
+
+/* PROGRESS */
+.prog-wrap{height:3px;background:var(--bg3);border-radius:2px;margin-top:10px;overflow:hidden;display:none}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--teal));border-radius:2px;transition:width 0.4s}
+
+/* SYNC LOG */
+.sync-log{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;min-height:52px;margin-top:12px;line-height:1.9;display:none}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:18px 0}
+
+/* ===== WHATSAPP ===== */
+.wa-btn{display:inline-flex;align-items:center;gap:8px;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.3);border-radius:var(--r);padding:9px 16px;font-size:12px;font-weight:500;color:#25d366;cursor:pointer;transition:all 0.15s;font-family:'Instrument Sans',sans-serif;text-decoration:none}
+.wa-btn:hover{background:rgba(37,211,102,0.22);transform:translateY(-1px)}
+.wa-btn svg{width:16px;height:16px;flex-shrink:0}
+.wa-icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:rgba(37,211,102,0.1);border-radius:50%;flex-shrink:0}
+.wa-user-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
+.wa-user-row:last-child{border-bottom:none}
+.wa-template-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;border-left:3px solid transparent}
+.wa-template-card:hover{border-left-color:#25d366;background:var(--bg4)}
+.wa-template-card.selected{border-left-color:#25d366;background:rgba(37,211,102,0.05)}
+.wa-template-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px}
+.wa-template-msg{font-size:11px;color:var(--text3);line-height:1.6;font-family:'JetBrains Mono',monospace}
+.wa-preview-box{background:url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2325d366' fill-opacity='0.03'%3E%3Cpath d='M0 0h20v20H0z'/%3E%3C/g%3E%3C/svg%3E") #0a1628;border:1px solid rgba(37,211,102,0.2);border-radius:var(--rl);padding:16px;min-height:120px}
+.wa-bubble{background:#1a3a2a;border-radius:12px 12px 0 12px;padding:10px 14px;max-width:85%;margin-left:auto;font-size:12px;color:#e8f5e9;line-height:1.6;font-family:'Instrument Sans',sans-serif;position:relative}
+.wa-bubble::after{content:'✓✓';position:absolute;bottom:6px;right:10px;font-size:9px;color:#25d366}
+.wa-time{font-size:9px;color:rgba(37,211,102,0.5);text-align:right;margin-top:4px;margin-right:4px;font-family:'JetBrains Mono',monospace}
+.wa-stat{background:rgba(37,211,102,0.06);border:1px solid rgba(37,211,102,0.15);border-radius:var(--r);padding:14px;text-align:center}
+.wa-stat-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:#25d366}
+.wa-stat-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-top:4px}
+
+/* ===== MOBILE BOTTOM NAV ===== */
+.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(12,18,32,0.98);border-top:1px solid var(--border2);z-index:200;padding:0;backdrop-filter:blur(16px)}
+.mob-nav-inner{display:flex;justify-content:space-around;align-items:center;padding:6px 0 env(safe-area-inset-bottom,6px)}
+.mob-tab{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 10px;cursor:pointer;color:var(--text3);transition:color 0.15s;border-radius:var(--r);min-width:52px;position:relative}
+.mob-tab.active{color:var(--cyan)}
+.mob-tab svg{width:20px;height:20px;flex-shrink:0}
+.mob-tab span{font-size:9px;font-family:'JetBrains Mono',monospace;letter-spacing:0.5px;white-space:nowrap}
+.mob-badge{position:absolute;top:4px;right:6px;background:var(--red);color:#fff;font-size:8px;font-weight:700;border-radius:8px;padding:1px 5px;min-width:14px;text-align:center;font-family:'JetBrains Mono',monospace}
+.mob-badge.cyan-b{background:rgba(0,212,255,0.2);color:var(--cyan);border:1px solid rgba(0,212,255,0.3)}
+.mob-menu-btn{display:none;background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;border-radius:var(--r)}
+
+/* ===== MOBILE DRAWER ===== */
+.mob-drawer{display:none;position:fixed;inset:0;z-index:300}
+.mob-drawer.open{display:block}
+.mob-drawer-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px)}
+.mob-drawer-panel{position:absolute;left:0;top:0;bottom:0;width:260px;background:var(--bg2);border-right:1px solid var(--border2);padding:20px 0;overflow-y:auto;transform:translateX(-100%);transition:transform 0.3s cubic-bezier(.4,0,.2,1)}
+.mob-drawer.open .mob-drawer-panel{transform:translateX(0)}
+
+@media(max-width:768px){
+  .rcpt-chart-3,.rcpt-chart-2{grid-template-columns:1fr !important}
+  /* Layout */
+  .sidebar{display:none !important}
+  .main{padding:14px 14px 80px 14px}
+  .layout{display:block}
+  .mob-nav{display:block}
+
+  /* Topbar */
+  .topbar{padding:0 14px;height:52px}
+  .logo-main{font-size:16px}
+  .logo-sub{display:none}
+  .logo-icon{width:30px;height:30px}
+  .status-pill{display:none}
+  .info-pill{font-size:10px;padding:3px 8px}
+  .clock-pill{font-size:11px;padding:3px 10px}
+  .mob-menu-btn{display:flex}
+  #rec-count{display:none}
+
+  /* Page header */
+  .page-header{flex-direction:column;gap:10px;margin-bottom:16px}
+  .page-title{font-size:18px}
+  .page-actions{width:100%;justify-content:flex-start}
+
+  /* Stats grid */
+  .stats-grid{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  .stat-card{padding:13px}
+  .stat-val{font-size:20px}
+  .stat-sub{font-size:10px}
+
+  /* Grids */
+  .g2,.g3,.g2e,.g3e{grid-template-columns:1fr;gap:10px}
+  .mini-grid{grid-template-columns:1fr 1fr;gap:8px}
+
+  /* Cards */
+  .card{padding:14px;margin-bottom:10px}
+  .card-title{font-size:9px}
+
+  /* Forms */
+  .fg input,.fg select,.fg textarea{font-size:14px;padding:10px 12px}
+  .fg label{font-size:9px}
+  .form-section{margin-bottom:14px}
+  .form-section-title{font-size:9px}
+
+  /* Buttons */
+  .btn{padding:10px 14px;font-size:12px}
+  .btn-row{gap:6px}
+  .btn-sm{padding:7px 10px;font-size:11px}
+
+  /* Serial badge */
+  .serial-badge{font-size:10px;padding:5px 10px}
+
+  /* Tables */
+  .tbl th{font-size:9px;padding:8px 10px}
+  .tbl td{font-size:11px;padding:8px 10px}
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  /* User rows */
+  .urow{gap:10px;padding:10px 0}
+  .av{width:34px;height:34px;font-size:11px}
+  .uname{font-size:12px}
+  .umeta{font-size:10px}
+
+  /* Charts */
+  canvas{max-height:160px}
+
+  /* Invoice */
+  .inv-preview{padding:16px}
+  .inv-co{font-size:16px}
+  .inv-total-val{font-size:16px}
+
+  /* Receipt preview */
+  #receipt-preview-box .logo-main{font-size:16px}
+
+  /* Search */
+  .search-bar{flex-wrap:wrap;gap:8px}
+  .search-inp{font-size:13px;padding:9px 12px}
+
+  /* Modal */
+  .modal{width:95vw;padding:18px;max-height:90vh}
+
+  /* Receipt charts mini stats */
+  #receipt .stats-grid-4{grid-template-columns:1fr 1fr}
+
+  /* Toast */
+  .toast{bottom:90px;right:14px;left:14px;font-size:12px;max-width:100%}
+
+  /* Upload boxes */
+  .upload-box{padding:16px}
+}
+
+.receipt-stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:600px){.receipt-stats-grid{grid-template-columns:1fr 1fr !important}}
+@media(max-width:400px){
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .mini-grid{grid-template-columns:1fr 1fr}
+  .main{padding:12px 10px 80px 10px}
+  .topbar{padding:0 12px}
+  .page-title{font-size:16px}
+  .stat-val{font-size:18px}
+  .mob-tab{min-width:44px;padding:7px 6px}
+  .mob-tab span{font-size:8px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo-wrap">
+    <div class="logo-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    </div>
+    <div class="logo-text">
+      <div class="logo-main"><span>SUPER</span>-BILLING</div>
+      <div class="logo-sub">ISP Management System</div>
+    </div>
+  </div>
+  <div class="top-right">
+    <div class="status-pill"><span class="status-dot"></span><span>System Online</span></div>
+    <div class="info-pill" id="rec-count">Records: 0</div>
+    <div class="info-pill" id="gs-status">Sheets: —</div>
+    <div class="clock-pill" id="live-clock">00:00:00</div>
+  </div>
+</div>
+
+
+<!-- MOBILE BOTTOM NAV -->
+<div class="mob-nav">
+  <div class="mob-nav-inner">
+    <div class="mob-tab active" id="mt-dash" onclick="showPage('dash',this);setMobTab('mt-dash')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      <span>Dashboard</span>
+    </div>
+    <div class="mob-tab" id="mt-payment" onclick="showPage('payment',this);setMobTab('mt-payment')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      <span>Payment</span>
+      <span class="mob-badge cyan-b" id="mob-pmt-badge">0</span>
+    </div>
+    <div class="mob-tab" id="mt-receipt" onclick="showPage('receipt',this);setMobTab('mt-receipt')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span>Receipt</span>
+    </div>
+    <div class="mob-tab" id="mt-history" onclick="showPage('history',this);setMobTab('mt-history')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>Users</span>
+      <span class="mob-badge" id="mob-unpaid-badge" style="display:none">!</span>
+    </div>
+    <div class="mob-tab" id="mt-more" onclick="openMobDrawer()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <span>More</span>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE DRAWER -->
+<div class="mob-drawer" id="mob-drawer">
+  <div class="mob-drawer-overlay" onclick="closeMobDrawer()"></div>
+  <div class="mob-drawer-panel">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:28px;height:28px;background:var(--cyan);border-radius:6px;display:flex;align-items:center;justify-content:center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--text)"><span style="color:var(--cyan)">SUPER</span>-BILLING</div>
+          <div style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:1px">v3.0.0 PRO</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:0 10px">
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--text3);font-family:'JetBrains Mono',monospace;padding:10px 10px 6px">Navigation</div>
+      <div class="nav-item" onclick="showPage('dash',this);closeMobDrawer();setMobTab('mt-dash')">
+        <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="showPage('payment',this);closeMobDrawer();setMobTab('mt-payment')">
+        <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+        Received Payment
+      </div>
+      <div class="nav-item" onclick="showPage('newuser',this);closeMobDrawer()">
+        <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></div>
+        Add New User
+      </div>
+      <div class="nav-item" onclick="showPage('receipt',this);closeMobDrawer();setMobTab('mt-receipt')">
+        <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        Payment Receipt
+      </div>
+      <div class="nav-item" onclick="showPage('history',this);closeMobDrawer();setMobTab('mt-history')">
+        <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        User History
+        <span class="nav-badge" id="drawer-unpaid-badge" style="display:none">!</span>
+      </div>
+      <div class="nav-item" onclick="showPage('invoice',this);closeMobDrawer()">
+        <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+        Invoice
+      </div>
+      <div class="nav-item" onclick="showPage('reports',this);closeMobDrawer()">
+        <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        Reports
+      </div>
+      <div class="nav-item" onclick="showPage('gssetup',this);closeMobDrawer()">
+        <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+        Google Sheets
+      </div>
+      <div class="nav-item" onclick="showPage('whatsapp',this);closeMobDrawer()">
+        <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
+        WhatsApp
+      </div>
+    </div>
+
+    <div style="padding:14px 20px;margin-top:10px;border-top:1px solid var(--border)">
+      <div style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.1);border-radius:var(--r);padding:12px;text-align:center">
+        <div style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-bottom:4px">DB STATUS</div>
+        <div style="font-size:12px;color:var(--cyan);font-family:'JetBrains Mono',monospace" id="mob-rec-count">Records: 0</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="nav-section">
+    <div class="nav-label">Main</div>
+    <div class="nav-item active" onclick="showPage('dash',this)">
+      <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="showPage('payment',this)">
+      <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+      Received Payment
+      <span class="nav-badge cyan" id="nav-pmt-badge">0</span>
+    </div>
+    <div class="nav-item" onclick="showPage('newuser',this)">
+      <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg></div>
+      Add New User
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Records</div>
+    <div class="nav-item" onclick="showPage('history',this)">
+      <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      User History
+      <span class="nav-badge" id="nav-unpaid-badge" style="display:none">!</span>
+    </div>
+    <div class="nav-item" onclick="showPage('invoice',this)">
+      <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+      Invoice
+    </div>
+    <div class="nav-item" onclick="showPage('reports',this)">
+      <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+      Reports
+    </div>
+    <div class="nav-item" onclick="showPage('receipt',this)">
+      <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+      Payment Receipt
+      <span class="nav-badge" style="background:rgba(245,200,66,0.15);color:var(--gold);border:1px solid rgba(245,200,66,0.2);font-size:8px">NEW</span>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Integration</div>
+    <div class="nav-item" onclick="showPage('gssetup',this)">
+      <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+      Google Sheets
+    </div>
+    <div class="nav-item" onclick="showPage('whatsapp',this)">
+      <div class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
+      WhatsApp
+      <span class="nav-badge" style="background:rgba(37,211,102,0.15);color:#25d366;border:1px solid rgba(37,211,102,0.25);font-size:8px">WA</span>
+    </div>
+  </div>
+  <div style="padding:14px;margin-top:20px">
+    <div style="background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.1);border-radius:var(--r);padding:12px;text-align:center">
+      <div style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-bottom:4px">VERSION</div>
+      <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--cyan)">v3.0.0</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px;font-family:'JetBrains Mono',monospace">SUPER-BILLING PRO</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+<!-- DASHBOARD -->
+<div id="dash" class="page active">
+  <div class="page-header">
+    <div><div class="page-title">Dashboard</div><div class="page-sub">Overview · April 2026</div></div>
+    <div class="page-actions">
+      <button class="btn btn-gold btn-sm" onclick="exportCSV('yearly')">Export CSV</button>
+      <button class="btn btn-cyan" onclick="syncAll()">Sync Sheets</button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card cyan"><div class="stat-glow"></div><div class="stat-lbl">Total Users</div><div class="stat-val" id="d-users">0</div><div class="stat-sub up"><span class="stat-arrow">↑</span><span id="d-users-sub">0 active</span></div></div>
+    <div class="stat-card gold"><div class="stat-glow"></div><div class="stat-lbl">Revenue This Month</div><div class="stat-val" id="d-rev">Rs.0</div><div class="stat-sub up"><span class="stat-arrow">↑</span><span id="d-rev-sub">collected</span></div></div>
+    <div class="stat-card red"><div class="stat-glow"></div><div class="stat-lbl">Unpaid Bills</div><div class="stat-val" id="d-unpaid">0</div><div class="stat-sub dn"><span class="stat-arrow">!</span><span>Not paid this month</span></div></div>
+    <div class="stat-card green"><div class="stat-glow"></div><div class="stat-lbl">Active Lines</div><div class="stat-val" id="d-active">0</div><div class="stat-sub up"><span class="stat-arrow">↑</span><span id="d-active-sub">operational</span></div></div>
+  </div>
+
+  <div class="g2" style="margin-bottom:14px">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Monthly Revenue 2026</div></div>
+      <div style="position:relative;height:190px"><canvas id="chartRev" role="img" aria-label="Monthly revenue">Revenue data</canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Payment Status</div></div>
+      <div style="position:relative;height:150px"><canvas id="chartStatus" role="img" aria-label="Payment status">Status data</canvas></div>
+      <div id="status-legend" style="display:flex;gap:14px;margin-top:12px;flex-wrap:wrap"></div>
+    </div>
+  </div>
+
+  <div class="g3">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Recent Payments</div></div>
+      <div id="recent-payments"><div style="color:var(--text3);font-size:12px;padding:8px 0;font-family:'JetBrains Mono',monospace">No payments yet</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Package Distribution</div></div>
+      <div style="position:relative;height:130px"><canvas id="chartPkg" role="img" aria-label="Packages">Packages</canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Quick Actions</div></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-gold" style="text-align:left" onclick="exportCSV('payments')">Export Payments CSV</button>
+        <button class="btn btn-gold" style="text-align:left" onclick="exportCSV('users')">Export Users CSV</button>
+        <button class="btn btn-gold" style="text-align:left" onclick="exportCSV('yearly')">Export Yearly CSV</button>
+        <button class="btn btn-cyan" style="text-align:left" onclick="syncAll()">Sync to Google Sheets</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT -->
+<div id="payment" class="page">
+  <div class="page-header">
+    <div><div class="page-title">Received Payment</div><div class="page-sub">Record incoming payments</div></div>
+    <div class="page-actions">
+      <button class="btn btn-gold btn-sm" onclick="exportCSV('payments')">Export CSV</button>
+      <button class="btn btn-cyan btn-sm" onclick="syncAll()">Sync Sheets</button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-header"><div class="card-title">New Payment Entry</div></div>
+    <div class="serial-badge"><span class="serial-pulse"></span><span id="pmt-serial-tag">PMT-2026-0001 (next)</span></div>
+
+    <div class="form-section">
+      <div class="form-section-title">Payment Info</div>
+      <div class="g2e">
+        <div class="fg"><label>Serial (Manual)</label><input type="text" id="p-serial" placeholder="Auto if empty"/></div>
+        <div class="fg"><label>Select User</label><select id="p-uid" onchange="fillPayUser()"><option value="">-- Select User --</option></select></div>
+      </div>
+      <div class="g2e">
+        <div class="fg"><label>Customer Name</label><input type="text" id="p-name" placeholder="Auto-filled from user"/></div>
+        <div class="fg"><label>Amount (Rs.)</label><input type="number" id="p-amount" placeholder="1500"/></div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Details</div>
+      <div class="g3e">
+        <div class="fg"><label>Date</label><input type="date" id="p-date"/></div>
+        <div class="fg"><label>Method</label><select id="p-method"><option>Cash</option><option>Bank Transfer</option><option>JazzCash</option><option>EasyPaisa</option><option>Cheque</option></select></div>
+        <div class="fg"><label>Billing Month</label><select id="p-month"><option>April 2026</option><option>March 2026</option><option>February 2026</option><option>January 2026</option><option>December 2025</option></select></div>
+      </div>
+      <div class="g2e">
+        <div class="fg"><label>Status</label><select id="p-status"><option>Paid Full</option><option>Partial Payment</option><option>Advance</option></select></div>
+        <div class="fg"><label>Remarks</label><input type="text" id="p-remarks" placeholder="Optional notes..."/></div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-solid-cyan" onclick="savePayment()">Save Payment</button>
+      <button class="btn btn-cyan" onclick="syncAll()">Sync to Google Sheets</button>
+      <button class="btn btn-gold" onclick="exportCSV('payments')">Export CSV</button>
+      <button class="btn" onclick="clearIds(['p-serial','p-name','p-amount','p-remarks']);document.getElementById('p-uid').value=''">Clear</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Payment Records (<span id="pmt-count">0</span>)</div>
+    </div>
+    <div class="search-bar">
+      <input class="search-inp" id="pmt-q" placeholder="Search payments..." oninput="renderPayments()" style="flex:1;min-width:160px"/>
+      <select class="search-inp" id="pmt-f" onchange="renderPayments()" style="min-width:140px"><option value="">All Status</option><option>Paid Full</option><option>Partial Payment</option><option>Unpaid</option></select>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Serial</th><th>Name</th><th>Amount</th><th>Date</th><th>Method</th><th>Month</th><th>Status</th><th></th></tr></thead>
+        <tbody id="pmt-body"><tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px;font-family:'JetBrains Mono',monospace">No payments recorded</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ADD USER -->
+<div id="newuser" class="page">
+  <div class="page-header">
+    <div><div class="page-title">Add New User</div><div class="page-sub">Register new connection</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">User Registration</div></div>
+    <div class="serial-badge"><span class="serial-pulse"></span><span id="usr-serial-tag">USR-2026-0001 (next)</span></div>
+
+    <div class="form-section">
+      <div class="form-section-title">Personal Information</div>
+      <div class="g2e">
+        <div class="fg"><label>Serial (Manual)</label><input type="text" id="u-serial" placeholder="Auto if empty"/></div>
+        <div class="fg"><label>Full Name</label><input type="text" id="u-name" placeholder="Customer full name"/></div>
+      </div>
+      <div class="g2e">
+        <div class="fg"><label>Father's Name</label><input type="text" id="u-father" placeholder="Father's name"/></div>
+        <div class="fg"><label>Mobile Number</label><input type="text" id="u-mobile" placeholder="03XX-XXXXXXX"/></div>
+      </div>
+      <div class="g2e">
+        <div class="fg"><label>CNIC Number</label><input type="text" id="u-cnic" placeholder="XXXXX-XXXXXXX-X"/></div>
+        <div class="fg"><label>Full Address</label><input type="text" id="u-address" placeholder="Street, Area, City"/></div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">Connection Details</div>
+      <div class="g2e">
+        <div class="fg"><label>Package / Plan</label>
+          <select id="u-pkg">
+            <option value="1500">10 Mbps — Rs.1,500/mo</option>
+            <option value="2000">20 Mbps — Rs.2,000/mo</option>
+            <option value="3500">50 Mbps — Rs.3,500/mo</option>
+            <option value="5000">100 Mbps — Rs.5,000/mo</option>
+          </select>
+        </div>
+        <div class="fg"><label>Connection Date</label><input type="date" id="u-date"/></div>
+      </div>
+      <div class="g2e">
+        <div class="fg"><label>MAC Address / PPPoE ID</label><input type="text" id="u-mac" placeholder="Device MAC or PPPoE ID"/></div>
+        <div class="fg"><label>Wire / Cable Details</label><input type="text" id="u-wire" placeholder="Length, type, route notes"/></div>
+      </div>
+      <div class="fg"><label>Additional Notes</label><textarea id="u-notes" placeholder="Extra information..."></textarea></div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">CNIC Images</div>
+      <div class="g2e">
+        <div class="upload-box" id="ub-f" onclick="document.getElementById('cf').click()">
+          <input type="file" id="cf" accept="image/*" style="display:none" onchange="handleUpload(this,'ub-f','cf-lbl')"/>
+          <div class="upload-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+          <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:3px">CNIC Front Side</div>
+          <div style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace" id="cf-lbl">Click to upload</div>
+        </div>
+        <div class="upload-box" id="ub-b" onclick="document.getElementById('cb').click()">
+          <input type="file" id="cb" accept="image/*" style="display:none" onchange="handleUpload(this,'ub-b','cb-lbl')"/>
+          <div class="upload-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+          <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:3px">CNIC Back Side</div>
+          <div style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace" id="cb-lbl">Click to upload</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-solid-cyan" onclick="saveUser()">Add User</button>
+      <button class="btn btn-cyan" onclick="syncAll()">Sync to Google Sheets</button>
+      <button class="btn btn-gold" onclick="exportCSV('users')">Export CSV</button>
+      <button class="btn" onclick="clearIds(['u-serial','u-name','u-father','u-mobile','u-cnic','u-address','u-mac','u-wire','u-notes'])">Clear</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div id="history" class="page">
+  <div class="page-header">
+    <div><div class="page-title">User History</div><div class="page-sub">Complete user database</div></div>
+    <div class="page-actions">
+      <button class="btn btn-gold btn-sm" onclick="exportCSV('users')">Export CSV</button>
+      <button class="btn btn-cyan btn-sm" onclick="syncAll()">Sync Sheets</button>
+    </div>
+  </div>
+
+  <div class="mini-grid">
+    <div class="mini"><div class="mini-lbl">Total Collected</div><div class="mini-val" style="color:var(--green)" id="h-total">Rs.0</div></div>
+    <div class="mini"><div class="mini-lbl">Pending</div><div class="mini-val" style="color:var(--red)" id="h-pending">Rs.0</div></div>
+    <div class="mini"><div class="mini-lbl">Total Users</div><div class="mini-val" style="color:var(--cyan)" id="h-users">0</div></div>
+    <div class="mini"><div class="mini-lbl">This Month Pmts</div><div class="mini-val" style="color:var(--gold)" id="h-mpmts">0</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-header"><div class="card-title">Yearly Collection Chart</div></div>
+    <div style="position:relative;height:160px"><canvas id="chartYearly" role="img" aria-label="Yearly">Yearly</canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="card-title">User Database</div></div>
+    <div class="search-bar">
+      <input class="search-inp" id="usr-q" placeholder="Search name, serial, CNIC, mobile..." oninput="renderUsers()" style="flex:1;min-width:200px"/>
+      <select class="search-inp" id="usr-f" onchange="renderUsers()" style="min-width:120px"><option value="">All Users</option><option>Active</option><option>Inactive</option></select>
+    </div>
+    <div id="users-list"><div style="color:var(--text3);font-size:12px;padding:20px 0;text-align:center;font-family:'JetBrains Mono',monospace">No users added yet</div></div>
+  </div>
+</div>
+
+<!-- INVOICE -->
+<div id="invoice" class="page">
+  <div class="page-header">
+    <div><div class="page-title">Invoice</div><div class="page-sub">Generate & export invoices</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Invoice Generator</div></div>
+      <div class="fg"><label>Select User</label><select id="inv-user" onchange="previewInv()"><option value="">-- Select User --</option></select></div>
+      <div class="g2e">
+        <div class="fg"><label>Month</label><select id="inv-month" onchange="previewInv()"><option>April 2026</option><option>March 2026</option><option>February 2026</option><option>January 2026</option></select></div>
+        <div class="fg"><label>Due Date</label><input type="date" id="inv-due"/></div>
+      </div>
+      <div class="g2e">
+        <div class="fg"><label>Previous Dues (Rs.)</label><input type="number" id="inv-dues" placeholder="0" oninput="previewInv()"/></div>
+        <div class="fg"><label>Extra Charges (Rs.)</label><input type="number" id="inv-extra" placeholder="0" oninput="previewInv()"/></div>
+      </div>
+      <div class="fg"><label>Invoice Note</label><input type="text" id="inv-note" placeholder="Optional note..."/></div>
+      <div class="btn-row">
+        <button class="btn btn-solid-cyan" onclick="previewInv()">Preview Invoice</button>
+        <button class="btn btn-gold" onclick="exportCSV('invoice')">Export CSV</button>
+        <button class="btn" onclick="window.print()">Print</button>
+      </div>
+    </div>
+
+    <div class="inv-preview">
+      <div class="inv-head">
+        <div>
+          <div class="inv-co"><span>SUPER</span>-BILLING</div>
+          <div class="inv-tagline">Internet Service Provider · Lahore</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;font-family:'JetBrains Mono',monospace">0300-0000000</div>
+        </div>
+        <div style="text-align:right">
+          <div class="inv-no" id="inv-num">INV-2026-0001</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;font-family:'JetBrains Mono',monospace" id="inv-period">April 2026</div>
+        </div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;margin-bottom:6px">Bill To</div>
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text)" id="inv-to">—</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:3px" id="inv-sub">Select a user to generate invoice</div>
+      </div>
+      <div class="inv-line"><span class="lbl">Internet Package</span><span class="val" id="inv-pkg-amt">—</span></div>
+      <div class="inv-line"><span class="lbl">Extra Charges</span><span class="val" id="inv-ext-amt">Rs.0</span></div>
+      <div class="inv-line"><span class="lbl" style="color:var(--red)">Previous Dues</span><span class="val" style="color:var(--red)" id="inv-prev-amt">Rs.0</span></div>
+      <div class="inv-total-row">
+        <div class="inv-total-lbl">Total Due</div>
+        <div class="inv-total-val" id="inv-total">—</div>
+      </div>
+      <div style="margin-top:14px;font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace" id="inv-footer">Cash · JazzCash · EasyPaisa · Bank Transfer</div>
+    </div>
+  </div>
+</div>
+
+<!-- REPORTS -->
+<div id="reports" class="page">
+  <div class="page-header">
+    <div><div class="page-title">Reports</div><div class="page-sub">Analytics & exports</div></div>
+    <div class="page-actions">
+      <button class="btn btn-gold btn-sm" onclick="exportCSV('yearly')">Export All CSV</button>
+    </div>
+  </div>
+  <div class="g2e" style="margin-bottom:14px">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Revenue by Package</div></div>
+      <div style="position:relative;height:200px"><canvas id="chartPkgRev" role="img" aria-label="Package revenue">Package revenue</canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Monthly Comparison</div></div>
+      <div style="position:relative;height:200px"><canvas id="chartMonthly" role="img" aria-label="Monthly comparison">Monthly</canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><div class="card-title">Payment Method Breakdown</div></div>
+    <div id="method-breakdown" style="display:flex;gap:14px;flex-wrap:wrap;padding:8px 0"></div>
+  </div>
+</div>
+
+
+<!-- PAYMENT RECEIPT -->
+<div id="receipt" class="page">
+  <div class="page-header">
+    <div><div class="page-title">Payment Receipt</div><div class="page-sub">Issue official payment receipts</div></div>
+    <div class="page-actions">
+      <button class="btn btn-gold btn-sm" onclick="printReceipt()">Print Receipt</button>
+      <button class="btn btn-cyan btn-sm" onclick="exportCSV('receipt_list')">Export CSV</button>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Receipt Generator</div></div>
+      <div class="serial-badge"><span class="serial-pulse"></span><span id="rcpt-serial-tag">RCP-2026-0001 (next)</span></div>
+
+      <div class="form-section">
+        <div class="form-section-title">Customer Info</div>
+        <div class="g2e">
+          <div class="fg"><label>Receipt Serial</label><input type="text" id="r-serial" placeholder="Auto if empty"/></div>
+          <div class="fg"><label>Select User</label><select id="r-uid" onchange="fillReceiptUser()"><option value="">-- Select User --</option></select></div>
+        </div>
+        <div class="g2e">
+          <div class="fg"><label>Customer Name</label><input type="text" id="r-name" placeholder="Auto-filled"/></div>
+          <div class="fg"><label>Mobile</label><input type="text" id="r-mobile" placeholder="Auto-filled"/></div>
+        </div>
+        <div class="fg"><label>Address</label><input type="text" id="r-address" placeholder="Auto-filled"/></div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title">Payment Details</div>
+        <div class="g2e">
+          <div class="fg"><label>Amount Received (Rs.)</label><input type="number" id="r-amount" placeholder="1500" oninput="updateReceiptPreview()"/></div>
+          <div class="fg"><label>Payment Date</label><input type="date" id="r-date" onchange="updateReceiptPreview()"/></div>
+        </div>
+        <div class="g2e">
+          <div class="fg"><label>Payment Method</label>
+            <select id="r-method" onchange="updateReceiptPreview()"><option>Cash</option><option>JazzCash</option><option>EasyPaisa</option><option>Bank Transfer</option><option>Cheque</option></select>
+          </div>
+          <div class="fg"><label>Billing Month</label>
+            <select id="r-month" onchange="updateReceiptPreview()"><option>April 2026</option><option>March 2026</option><option>February 2026</option><option>January 2026</option><option>December 2025</option></select>
+          </div>
+        </div>
+        <div class="g2e">
+          <div class="fg"><label>Package</label><input type="text" id="r-pkg" placeholder="Auto-filled" readonly style="opacity:0.7"/></div>
+          <div class="fg"><label>Payment Status</label>
+            <select id="r-status" onchange="updateReceiptPreview()"><option>Paid Full</option><option>Partial Payment</option><option>Advance</option></select>
+          </div>
+        </div>
+        <div class="fg"><label>Remarks</label><input type="text" id="r-remarks" placeholder="Optional..." oninput="updateReceiptPreview()"/></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-solid-cyan" onclick="saveReceipt()">Save & Issue Receipt</button>
+        <button class="btn btn-gold" onclick="printReceipt()">Print</button>
+        <button class="btn btn-cyan" onclick="syncAll()">Sync Sheets</button>
+        <button class="btn" onclick="clearReceiptForm()">Clear</button>
+      </div>
+    </div>
+
+    <div>
+      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;margin-bottom:10px">Live Preview</div>
+      <div id="receipt-preview-box" style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);overflow:hidden">
+        <div style="background:var(--cyan);padding:20px 24px;position:relative;overflow:hidden">
+          <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.1)"></div>
+          <div style="position:absolute;bottom:-30px;left:30px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,0.07)"></div>
+          <div style="position:relative;z-index:1">
+            <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:900;color:#000;letter-spacing:-0.5px">SUPER-BILLING</div>
+            <div style="font-size:9px;color:rgba(0,0,0,0.55);font-family:'JetBrains Mono',monospace;margin-top:2px;letter-spacing:1.5px">PAYMENT RECEIPT</div>
+          </div>
+        </div>
+        <div style="padding:20px 22px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;margin-bottom:3px">Receipt No.</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;color:var(--cyan)" id="r-preview-serial">RCP-2026-0001</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;margin-bottom:3px">Date</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text)" id="r-preview-date">—</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom:16px;padding:14px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border)">
+            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;margin-bottom:6px">Received From</div>
+            <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text)" id="r-preview-name">—</div>
+            <div style="font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-top:3px" id="r-preview-meta">Select user to generate receipt</div>
+          </div>
+
+          <div style="text-align:center;margin-bottom:16px;padding:16px;background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.12);border-radius:var(--r)">
+            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:2px;font-family:'JetBrains Mono',monospace;margin-bottom:7px">Amount Received</div>
+            <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:900;color:var(--cyan)" id="r-preview-amount">Rs. 0</div>
+            <div style="margin-top:7px" id="r-preview-status"><span class="badge b-paid">Paid Full</span></div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:3px">Method</div>
+              <div style="font-size:12px;font-weight:500;color:var(--text)" id="r-preview-method">Cash</div>
+            </div>
+            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:3px">Billing Month</div>
+              <div style="font-size:12px;font-weight:500;color:var(--text)" id="r-preview-month">—</div>
+            </div>
+            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:3px">Package</div>
+              <div style="font-size:11px;font-weight:500;color:var(--text)" id="r-preview-pkg">—</div>
+            </div>
+            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px">
+              <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:3px">User ID</div>
+              <div style="font-size:11px;font-weight:500;color:var(--cyan);font-family:'JetBrains Mono',monospace" id="r-preview-uid">—</div>
+            </div>
+          </div>
+
+          <div id="r-preview-remarks-wrap" style="display:none;margin-bottom:12px;padding:10px 12px;background:var(--bg3);border-radius:var(--r);border-left:2px solid var(--gold)">
+            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:3px">Remarks</div>
+            <div style="font-size:12px;color:var(--text2)" id="r-preview-remarks"></div>
+          </div>
+
+          <div style="padding-top:12px;border-top:1px dashed var(--border);display:flex;justify-content:space-between;align-items:center">
+            <div style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace">SUPER-BILLING · Lahore</div>
+            <div style="font-size:9px;color:var(--text3);font-family:'JetBrains Mono',monospace">0300-0000000</div>
+          </div>
+          <div style="margin-top:8px;text-align:center">
+            <div style="font-size:8px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:2px">THANK YOU FOR YOUR PAYMENT</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <div class="card-header"><div class="card-title">Recent Receipts (<span id="rcpt-count">0</span>)</div></div>
+
+        <div id="rcpt-list"><div style="color:var(--text3);font-size:12px;text-align:center;padding:14px;font-family:'JetBrains Mono',monospace">No receipts issued yet</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECEIPT CHARTS ROW -->
+  <div style="margin-top:16px">
+    <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;margin-bottom:12px">Receipt Analytics</div>
+
+    <!-- Mini Stats -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px" class="receipt-stats-grid">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--cyan)"></div>
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;font-family:'JetBrains Mono',monospace;margin-bottom:8px">Total Receipts</div>
+        <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:700;color:var(--cyan)" id="rc-total-count">0</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:5px">issued</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold)"></div>
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;font-family:'JetBrains Mono',monospace;margin-bottom:8px">Total Collected</div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--gold)" id="rc-total-amt">Rs.0</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:5px">via receipts</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--green)"></div>
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;font-family:'JetBrains Mono',monospace;margin-bottom:8px">Paid Full</div>
+        <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:700;color:var(--green)" id="rc-paid-count">0</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:5px">receipts</div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:var(--gold)"></div>
+        <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;font-family:'JetBrains Mono',monospace;margin-bottom:8px">This Month</div>
+        <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:700;color:var(--gold)" id="rc-month-count">0</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:5px">receipts</div>
+      </div>
+    </div>
+
+    <!-- 3 Charts Row -->
+    <div class="rcpt-chart-3" style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:14px;margin-bottom:14px">
+      <!-- Daily Receipt Revenue Bar Chart -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px">
+        <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;margin-bottom:14px">Monthly Collection (2026)</div>
+        <div style="position:relative;height:170px"><canvas id="chartRcptMonthly" role="img" aria-label="Monthly receipt collection chart">Monthly receipt data</canvas></div>
+      </div>
+
+      <!-- Payment Method Donut -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px">
+        <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;margin-bottom:14px">Payment Methods</div>
+        <div style="position:relative;height:140px"><canvas id="chartRcptMethod" role="img" aria-label="Payment method donut chart">Method distribution</canvas></div>
+        <div id="method-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+      </div>
+
+      <!-- Status Breakdown -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px">
+        <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;margin-bottom:14px">Status Breakdown</div>
+        <div style="position:relative;height:140px"><canvas id="chartRcptStatus" role="img" aria-label="Receipt status bar chart">Status breakdown</canvas></div>
+        <div id="rcpt-status-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- Bottom 2 Charts -->
+    <div class="rcpt-chart-2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <!-- Top Users by Receipt Amount -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px">
+        <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;margin-bottom:14px">Top Users by Payment</div>
+        <div style="position:relative;height:170px"><canvas id="chartRcptTopUsers" role="img" aria-label="Top users horizontal bar chart">Top users</canvas></div>
+      </div>
+
+      <!-- Weekly Trend Line -->
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px">
+        <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace;margin-bottom:14px">Revenue Trend</div>
+        <div style="position:relative;height:170px"><canvas id="chartRcptTrend" role="img" aria-label="Revenue trend line chart">Revenue trend</canvas></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- WHATSAPP -->
+<div id="whatsapp" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title" style="display:flex;align-items:center;gap:10px">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#25d366" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        WhatsApp Messages
+      </div>
+      <div class="page-sub">Customers ko bills aur reminders bhejein</div>
+    </div>
+    <div class="page-actions">
+      <button class="wa-btn" onclick="waSendAll('reminder')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        Send Bulk Reminders
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">
+    <div class="wa-stat"><div class="wa-stat-val" id="wa-total-users">0</div><div class="wa-stat-lbl">Total Users</div></div>
+    <div class="wa-stat"><div class="wa-stat-val" id="wa-with-mobile">0</div><div class="wa-stat-lbl">With Mobile No.</div></div>
+    <div class="wa-stat"><div class="wa-stat-val" id="wa-unpaid">0</div><div class="wa-stat-lbl">Unpaid This Month</div></div>
+    <div class="wa-stat"><div class="wa-stat-val" id="wa-sent">0</div><div class="wa-stat-lbl">Sent Today</div></div>
+  </div>
+
+  <div class="g2">
+    <!-- LEFT: Templates + User List -->
+    <div>
+      <!-- Message Templates -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header"><div class="card-title">Message Templates</div></div>
+
+        <div class="wa-template-card selected" id="tpl-reminder" onclick="selectTemplate('reminder')">
+          <div class="wa-template-title">Bill Reminder</div>
+          <div class="wa-template-msg">Assalam o Alaikum {name} bhai,<br/>Aapka {month} ka internet bill Rs.{amount} pending hai.<br/>Jald payment karein. Shukriya! 🙏<br/>— SUPER-BILLING ISP</div>
+        </div>
+
+        <div class="wa-template-card" id="tpl-receipt" onclick="selectTemplate('receipt')">
+          <div class="wa-template-title">Payment Received</div>
+          <div class="wa-template-msg">Assalam o Alaikum {name} bhai,<br/>Aapki payment Rs.{amount} haasil ho gayi. ✅<br/>Receipt No: {serial}<br/>Shukriya aapki trust ke liye!<br/>— SUPER-BILLING ISP</div>
+        </div>
+
+        <div class="wa-template-card" id="tpl-due" onclick="selectTemplate('due')">
+          <div class="wa-template-title">Last Warning (Due)</div>
+          <div class="wa-template-msg">⚠️ {name} bhai, aapka bill Rs.{amount} abhi tak nahi aaya.<br/>Kal tak payment na hone par connection band ho sakta hai.<br/>Please rabta karein: 0300-0000000<br/>— SUPER-BILLING ISP</div>
+        </div>
+
+        <div class="wa-template-card" id="tpl-welcome" onclick="selectTemplate('welcome')">
+          <div class="wa-template-title">Welcome Message</div>
+          <div class="wa-template-msg">🎉 {name} bhai, SUPER-BILLING mein khush aamdeed!<br/>Aapka {pkg} package activate ho gaya hai.<br/>User ID: {serial}<br/>Koi bhi masla ho: 0300-0000000<br/>— SUPER-BILLING ISP</div>
+        </div>
+
+        <div class="wa-template-card" id="tpl-custom" onclick="selectTemplate('custom')">
+          <div class="wa-template-title">Custom Message</div>
+          <div class="wa-template-msg" id="custom-tpl-preview">Apna message neeche likhein...</div>
+        </div>
+
+        <div class="fg" style="margin-top:12px" id="custom-msg-wrap" style="display:none">
+          <label>Custom Message</label>
+          <textarea id="custom-msg" rows="4" placeholder="Apna message likhein... {name} {amount} {month} {serial} use kar sakte hain" oninput="updateWaPreview();document.getElementById('custom-tpl-preview').textContent=this.value||'Apna message neeche likhein...'"></textarea>
+        </div>
+      </div>
+
+      <!-- User List with Send Buttons -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Users (<span id="wa-user-count">0</span>)</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm" onclick="waFilterUsers('all')" id="waf-all" style="color:var(--cyan)">All</button>
+            <button class="btn btn-sm" onclick="waFilterUsers('unpaid')" id="waf-unpaid">Unpaid</button>
+            <button class="btn btn-sm" onclick="waFilterUsers('active')" id="waf-active">Active</button>
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <input class="search-inp" id="wa-search" placeholder="Search user..." oninput="renderWaUsers()" style="width:100%"/>
+        </div>
+        <div id="wa-users-list"><div style="color:var(--text3);font-size:12px;text-align:center;padding:16px;font-family:'JetBrains Mono',monospace">No users added yet</div></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Preview + Log -->
+    <div>
+      <!-- Live Preview -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header"><div class="card-title">Message Preview</div></div>
+        <div style="margin-bottom:10px">
+          <input class="search-inp" id="wa-preview-name" placeholder="Preview ke liye naam likhein..." oninput="updateWaPreview()" style="width:100%"/>
+        </div>
+        <div class="wa-preview-box">
+          <div style="font-size:9px;color:rgba(37,211,102,0.4);font-family:'JetBrains Mono',monospace;margin-bottom:10px;letter-spacing:1px">SUPER-BILLING ISP</div>
+          <div class="wa-bubble" id="wa-preview-msg">Template select karein aur preview dekhein...</div>
+          <div class="wa-time" id="wa-preview-time">—</div>
+        </div>
+      </div>
+
+      <!-- Send Log -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Send Log</div>
+          <button class="btn btn-sm btn-red" onclick="clearWaLog()">Clear</button>
+        </div>
+        <div id="wa-log" style="max-height:280px;overflow-y:auto">
+          <div style="color:var(--text3);font-size:12px;text-align:center;padding:14px;font-family:'JetBrains Mono',monospace">Koi message nahi bheja gaya</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GOOGLE SHEETS -->
+<div id="gssetup" class="page">
+  <div class="page-header">
+    <div><div class="page-title">Google Sheets</div><div class="page-sub">Live sync integration</div></div>
+  </div>
+  <div class="card" style="max-width:700px">
+    <div class="card-header"><div class="card-title">Connection Setup</div></div>
+
+    <div class="gs-setup-card">
+      <div class="gs-step"><div class="gs-num">1</div><div class="gs-body"><strong>Apps Script mein naya code paste karein</strong><br/>Google Sheet → Extensions → Apps Script → Code.gs → neeche wala code paste karein → Save (Ctrl+S)</div></div>
+      <div class="gs-step"><div class="gs-num">2</div><div class="gs-body"><strong>New version deploy karein</strong><br/>Deploy → Manage deployments → Edit (pencil) → Version: <code>New version</code> → Update dabayein</div></div>
+      <div class="gs-step"><div class="gs-num">3</div><div class="gs-body"><strong>URL neeche paste → Save → Sync</strong><br/>Web App URL copy karke neeche paste karein, Save URL dabayein, phir Sync All Data</div></div>
+    </div>
+
+    <div class="fg">
+      <label>Web App URL</label>
+      <input type="text" id="gs-url" placeholder="https://script.google.com/macros/s/.../exec" style="font-family:'JetBrains Mono',monospace;font-size:12px"/>
+    </div>
+    <div class="btn-row" style="margin-bottom:16px">
+      <button class="btn btn-solid-cyan" onclick="saveGsUrl()">Save URL</button>
+      <button class="btn btn-cyan" onclick="testConn()">Test Connection</button>
+      <button class="btn btn-green" onclick="syncAll()">Sync All Data Now</button>
+    </div>
+
+    <div class="prog-wrap" id="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+    <div class="sync-log" id="sync-log"></div>
+
+    <div class="divider"></div>
+    <div class="card-header" style="margin-bottom:10px"><div class="card-title">Apps Script Code</div><button class="btn btn-sm" onclick="copyCode()">Copy Code</button></div>
+    <div style="position:relative">
+      <pre id="script-display" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);white-space:pre-wrap;line-height:1.8;max-height:280px;overflow-y:auto"></pre>
+    </div>
+  </div>
+</div>
+
+</div><!-- end main -->
+</div><!-- end layout -->
+
+<!-- MODAL -->
+<div class="modal-bg" id="user-modal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700" id="modal-title">User Detail</div>
+      <span onclick="closeModal()" style="cursor:pointer;color:var(--text3);font-size:22px;line-height:1;transition:color 0.15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text3)'">&#x2715;</span>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const APPS_SCRIPT_CODE = `function doGet(e) {
+  var action = e && e.parameter ? e.parameter.action : '';
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  if (action === 'sync') {
+    try {
+      var usersParam = e.parameter.users;
+      var paymentsParam = e.parameter.payments;
+
+      if (usersParam) {
+        var uData = JSON.parse(decodeURIComponent(usersParam));
+        var uSheet = ss.getSheetByName('Users') || ss.insertSheet('Users');
+        uSheet.clearContents();
+        uSheet.appendRow(uData.headers);
+        var uhr = uSheet.getRange(1,1,1,uData.headers.length);
+        uhr.setBackground('#070b12');
+        uhr.setFontColor('#00d4ff');
+        uhr.setFontWeight('bold');
+        uSheet.setFrozenRows(1);
+        uData.rows.forEach(function(r){ uSheet.appendRow(r); });
+        uSheet.autoResizeColumns(1, uData.headers.length);
+      }
+
+      if (paymentsParam) {
+        var pData = JSON.parse(decodeURIComponent(paymentsParam));
+        var pSheet = ss.getSheetByName('Payments') || ss.insertSheet('Payments');
+        pSheet.clearContents();
+        pSheet.appendRow(pData.headers);
+        var phr = pSheet.getRange(1,1,1,pData.headers.length);
+        phr.setBackground('#070b12');
+        phr.setFontColor('#00d4ff');
+        phr.setFontWeight('bold');
+        pSheet.setFrozenRows(1);
+        pData.rows.forEach(function(r){ pSheet.appendRow(r); });
+        pSheet.autoResizeColumns(1, pData.headers.length);
+      }
+
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          success: true,
+          users: usersParam ? JSON.parse(decodeURIComponent(usersParam)).rows.length : 0,
+          payments: paymentsParam ? JSON.parse(decodeURIComponent(paymentsParam)).rows.length : 0
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    } catch(err) {
+      return ContentService
+        .createTextOutput(JSON.stringify({ success: false, error: err.toString() }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  return ContentService
+    .createTextOutput(JSON.stringify({
+      status: 'ok',
+      message: 'SUPER-BILLING API ready!',
+      time: new Date().toISOString()
+    }))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+// ===== DATABASE =====
+const DB={key:'superbilling_v1',load(){try{return JSON.parse(localStorage.getItem(this.key))||this.def();}catch{return this.def();}},save(d){localStorage.setItem(this.key,JSON.stringify(d));},def(){return{users:[],payments:[],receipts:[],waLog:[],settings:{gsUrl:'',lastSync:null},meta:{us:0,ps:0,rs:0}};}};
+let db=DB.load();
+function saveDB(){DB.save(db);const rc=document.getElementById('rec-count');if(rc)rc.textContent='Records: '+(db.users.length+db.payments.length);updateNavBadges();updateMobBadges();}
+
+function nextU(){db.meta.us++;saveDB();return 'USR-'+(String(db.meta.us).padStart(4,'0'));}
+function nextP(){db.meta.ps++;saveDB();return 'PMT-2026-'+(String(db.meta.ps).padStart(4,'0'));}
+function updateSerials(){
+  const u=document.getElementById('usr-serial-tag'),p=document.getElementById('pmt-serial-tag');
+  if(u)u.textContent='USR-'+(String(db.meta.us+1).padStart(4,'0'))+' (next)';
+  if(p)p.textContent='PMT-2026-'+(String(db.meta.ps+1).padStart(4,'0'))+' (next)';
+}
+function updateNavBadges(){
+  const pb=document.getElementById('nav-pmt-badge');if(pb)pb.textContent=db.payments.length;
+  const now=new Date();const curMonth=now.toLocaleString('default',{month:'long'});
+  const unpaid=db.users.filter(u=>!db.payments.find(p=>p.uid===u.serial&&p.month&&p.month.includes(curMonth)&&p.status==='Paid Full')).length;
+  const ub=document.getElementById('nav-unpaid-badge');
+  if(ub){if(unpaid>0){ub.textContent=unpaid;ub.style.display='';ub.style.background='var(--red)';}else{ub.style.display='none';}}
+}
+
+// ===== TOAST =====
+function toast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show'+(type?' '+type:'');
+  setTimeout(()=>t.className='toast',3500);
+}
+
+// ===== DROPDOWNS =====
+function refreshDropdowns(){
+  refreshReceiptDropdown();
+  ['p-uid','inv-user'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    const v=el.value;el.innerHTML='<option value="">-- Select User --</option>';
+    db.users.forEach(u=>{const o=document.createElement('option');o.value=u.serial;o.textContent=u.name+' — '+u.serial;el.appendChild(o);});
+    el.value=v;
+  });
+}
+function fillPayUser(){const uid=document.getElementById('p-uid').value;const u=db.users.find(x=>x.serial===uid);if(u)document.getElementById('p-name').value=u.name;}
+
+// ===== SAVE USER =====
+function saveUser(){
+  const g=id=>(document.getElementById(id)||{}).value||'';
+  const name=g('u-name').trim();if(!name){toast('Name required!','err');return;}
+  const pkgEl=document.getElementById('u-pkg');
+  const serial=g('u-serial').trim()||nextU();
+  const user={serial,name,father:g('u-father'),mobile:g('u-mobile'),cnic:g('u-cnic'),address:g('u-address'),pkg:pkgEl.options[pkgEl.selectedIndex].text,pkgAmt:parseInt(pkgEl.value)||1500,date:g('u-date')||new Date().toISOString().split('T')[0],mac:g('u-mac'),wire:g('u-wire'),notes:g('u-notes'),status:'Active',added:new Date().toISOString()};
+  const idx=db.users.findIndex(u=>u.serial===serial);
+  if(idx>=0)db.users[idx]=user;else db.users.push(user);
+  saveDB();refreshDropdowns();renderUsers();updateDashboard();updateSerials();
+  toast('User '+name+' added! ('+serial+')','ok');
+  clearIds(['u-serial','u-name','u-father','u-mobile','u-cnic','u-address','u-mac','u-wire','u-notes']);
+}
+
+// ===== SAVE PAYMENT =====
+function savePayment(){
+  const g=id=>(document.getElementById(id)||{}).value||'';
+  const name=g('p-name').trim(),amt=g('p-amount');
+  if(!name){toast('Select a user first!','err');return;}
+  if(!amt){toast('Enter amount!','err');return;}
+  const serial=g('p-serial').trim()||nextP();
+  const pmt={serial,uid:g('p-uid'),name,amount:parseInt(amt)||0,date:g('p-date')||new Date().toISOString().split('T')[0],method:g('p-method'),month:g('p-month'),status:g('p-status'),remarks:g('p-remarks'),added:new Date().toISOString()};
+  db.payments.push(pmt);saveDB();renderPayments();updateDashboard();updateSerials();
+  toast('Payment Rs.'+pmt.amount.toLocaleString()+' saved!','ok');
+  // Offer WhatsApp receipt
+  const payUser=db.users.find(x=>x.serial===pmt.uid);
+  if(payUser&&payUser.mobile){
+    setTimeout(()=>{
+      if(confirm(payUser.name+' ko WhatsApp payment confirmation bhejein?')){
+        const waMsg = getWaMessage(payUser,'receipt');
+        const waHref = waLink(payUser.mobile, waMsg);
+        window.open(waHref,'_blank');
+        logWaSend(payUser.serial, payUser.name);
+      }
+    },400);
+  }
+  clearIds(['p-serial','p-name','p-amount','p-remarks']);document.getElementById('p-uid').value='';
+}
+
+function deletePayment(i){if(!confirm('Delete this payment?'))return;db.payments.splice(i,1);saveDB();renderPayments();updateDashboard();toast('Payment deleted');}
+function deleteUser(s){if(!confirm('Delete user '+s+'?'))return;db.users=db.users.filter(u=>u.serial!==s);saveDB();renderUsers();refreshDropdowns();updateDashboard();toast('User deleted');}
+
+// ===== RENDER PAYMENTS =====
+function renderPayments(){
+  const q=(document.getElementById('pmt-q')||{}).value||'';
+  const f=(document.getElementById('pmt-f')||{}).value||'';
+  const body=document.getElementById('pmt-body');if(!body)return;
+  const rows=db.payments.filter(p=>{
+    const mq=!q||[p.serial,p.name,p.method,p.month,p.uid].some(v=>(v||'').toLowerCase().includes(q.toLowerCase()));
+    const mf=!f||p.status===f;return mq&&mf;
+  });
+  const el=document.getElementById('pmt-count');if(el)el.textContent=rows.length;
+  if(!rows.length){body.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px;font-family:\'JetBrains Mono\',monospace">No records found</td></tr>';return;}
+  body.innerHTML=rows.map(p=>{
+    const i=db.payments.indexOf(p);
+    const bc=p.status==='Paid Full'?'b-paid':p.status==='Partial Payment'?'b-partial':'b-unpaid';
+    return `<tr><td class="mono">${p.serial}</td><td style="font-weight:500;color:var(--text)">${p.name}</td><td style="color:var(--gold);font-family:'JetBrains Mono',monospace">Rs.${(p.amount||0).toLocaleString()}</td><td class="mono">${p.date||'—'}</td><td>${p.method||'—'}</td><td class="mono" style="font-size:10px">${p.month||'—'}</td><td><span class="badge ${bc}">${p.status}</span></td><td><button class="btn btn-red btn-sm" onclick="deletePayment(${i})">Del</button></td></tr>`;
+  }).join('');
+}
+
+// ===== RENDER USERS =====
+function renderUsers(){
+  const q=(document.getElementById('usr-q')||{}).value||'';
+  const f=(document.getElementById('usr-f')||{}).value||'';
+  const list=document.getElementById('users-list');if(!list)return;
+  const users=db.users.filter(u=>{
+    const mq=!q||[u.serial,u.name,u.cnic,u.mobile,u.address].some(v=>(v||'').toLowerCase().includes(q.toLowerCase()));
+    const mf=!f||u.status===f;return mq&&mf;
+  });
+  if(!users.length){list.innerHTML='<div style="color:var(--text3);font-size:12px;padding:20px 0;text-align:center;font-family:\'JetBrains Mono\',monospace">No users found</div>';return;}
+  list.innerHTML=users.map(u=>{
+    const ini=(u.name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const bc=u.status==='Active'?'b-active':'b-inactive';
+    const pmts=db.payments.filter(p=>p.uid===u.serial);
+    const last=pmts.length?pmts[pmts.length-1]:null;
+    const tot=pmts.reduce((s,p)=>s+(p.amount||0),0);
+    const waBtnHtml = u.mobile
+      ? `<button class="btn btn-sm" onclick="quickWaSend('${u.serial}')" style="background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.3);color:#25d366;padding:5px 8px;font-size:10px">
+           <svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z'/></svg> WA
+         </button>`
+      : '';
+    return `<div class="urow"><div class="av">${ini}</div><div class="uinfo"><div class="uname">${u.name} <span style="font-size:10px;color:var(--cyan);margin-left:6px;font-family:'JetBrains Mono',monospace">${u.serial}</span></div><div class="umeta">CNIC:${u.cnic||'—'} · ${u.pkg||'—'} · ${u.mobile||'—'} · Total:Rs.${tot.toLocaleString()}${last?' · Last:Rs.'+last.amount.toLocaleString():''}</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><button class="btn btn-sm btn-cyan" onclick="showUserModal('${u.serial}')">Detail</button>${waBtnHtml}<button class="btn btn-red btn-sm" onclick="deleteUser('${u.serial}')">Del</button><span class="badge ${bc}">${u.status}</span></div></div>`;
+  }).join('');
+}
+
+// ===== USER MODAL =====
+function showUserModal(s){
+  const u=db.users.find(x=>x.serial===s);if(!u)return;
+  const pmts=db.payments.filter(p=>p.uid===s);
+  const tot=pmts.reduce((a,p)=>a+(p.amount||0),0);
+  document.getElementById('modal-title').textContent=u.name;
+  document.getElementById('modal-body').innerHTML=`
+    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);border-radius:6px;padding:5px 12px;font-size:11px;color:var(--cyan);font-family:'JetBrains Mono',monospace;margin-bottom:16px">${u.serial} · ${u.status}</div>
+    <div class="g2e" style="margin-bottom:18px">${[['Father',u.father],['Mobile',u.mobile],['CNIC',u.cnic],['Address',u.address],['Package',u.pkg],['Pkg Amount','Rs.'+(u.pkgAmt||0).toLocaleString()],['Connection Date',u.date],['MAC/PPPoE',u.mac],['Wire',u.wire]].map(([l,v])=>`<div style="margin-bottom:10px"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace;margin-bottom:4px">${l}</div><div style="font-size:13px;color:var(--text)">${v||'—'}</div></div>`).join('')}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;font-family:'JetBrains Mono',monospace">Payment History (${pmts.length} records)</div><div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--gold)">Rs.${tot.toLocaleString()}</div></div>
+    ${pmts.length?`<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Serial</th><th>Amount</th><th>Date</th><th>Method</th><th>Status</th></tr></thead><tbody>${pmts.map(p=>`<tr><td class="mono">${p.serial}</td><td style="color:var(--gold);font-family:'JetBrains Mono',monospace">Rs.${p.amount.toLocaleString()}</td><td class="mono">${p.date||'—'}</td><td>${p.method}</td><td><span class="badge ${p.status==='Paid Full'?'b-paid':p.status==='Partial Payment'?'b-partial':'b-unpaid'}">${p.status}</span></td></tr>`).join('')}</tbody></table></div>`:'<div style="color:var(--text3);font-size:12px;font-family:\'JetBrains Mono\',monospace">No payments recorded</div>'}
+    ${u.notes?`<div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:var(--r);font-size:12px;color:var(--text2)"><span style="color:var(--text3)">Notes: </span>${u.notes}</div>`:''}`;
+  document.getElementById('user-modal').classList.add('open');
+}
+function closeModal(){document.getElementById('user-modal').classList.remove('open');}
+
+// ===== DASHBOARD + CHARTS =====
+let cRev=null,cSts=null,cPkg=null,cYr=null,cPkgRev=null,cMon=null;
+let cRcptM=null,cRcptMeth=null,cRcptSts=null,cRcptTop=null,cRcptTrend=null;
+function destroyChart(c){if(c&&c.destroy)c.destroy();}
+
+function updateDashboard(){
+  const now=new Date();
+  const curMonth=now.toLocaleString('default',{month:'long'});
+  const mPmts=db.payments.filter(p=>p.month&&p.month.includes(curMonth));
+  const mRev=mPmts.reduce((s,p)=>s+(p.amount||0),0);
+  const unpaid=db.users.filter(u=>!db.payments.find(p=>p.uid===u.serial&&p.month&&p.month.includes(curMonth)&&p.status==='Paid Full')).length;
+  const active=db.users.filter(u=>u.status==='Active').length;
+  const setText=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setText('d-users',db.users.length);setText('d-users-sub',active+' active');
+  setText('d-rev','Rs.'+mRev.toLocaleString());setText('d-unpaid',unpaid);
+  setText('d-active',active);setText('d-active-sub',Math.round(active/(db.users.length||1)*100)+'% of total');
+  const allRev=db.payments.reduce((s,p)=>s+(p.amount||0),0);
+  const pkgRev=db.users.reduce((s,u)=>s+(u.pkgAmt||0),0);
+  setText('h-total','Rs.'+allRev.toLocaleString());
+  setText('h-pending','Rs.'+Math.max(0,pkgRev-allRev).toLocaleString());
+  setText('h-users',db.users.length);setText('h-mpmts',mPmts.length);
+
+  const rp=document.getElementById('recent-payments');
+  if(rp){const rec=[...db.payments].reverse().slice(0,4);rp.innerHTML=rec.length?rec.map(p=>`<div class="urow" style="padding:9px 0"><div class="av" style="width:32px;height:32px;font-size:10px">${(p.name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase()}</div><div class="uinfo"><div class="uname" style="font-size:12px">${p.name}</div><div class="umeta">Rs.${(p.amount||0).toLocaleString()} · ${p.date||'—'}</div></div><span class="badge ${p.status==='Paid Full'?'b-paid':p.status==='Partial Payment'?'b-partial':'b-unpaid'}">${p.status}</span></div>`).join(''):'<div style="color:var(--text3);font-size:12px;font-family:\'JetBrains Mono\',monospace">No payments yet</div>';}
+
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const mData=months.map((_,mi)=>db.payments.filter(p=>{if(!p.date)return false;const d=new Date(p.date);return d.getMonth()===mi&&d.getFullYear()===now.getFullYear();}).reduce((s,p)=>s+(p.amount||0),0));
+  const pC=db.payments.filter(p=>p.status==='Paid Full').length;
+  const ptC=db.payments.filter(p=>p.status==='Partial Payment').length;
+  const uC=db.payments.filter(p=>p.status==='Unpaid').length;
+  const pkgMap={};db.users.forEach(u=>{const k=(u.pkg||'?').split('—')[0].trim();pkgMap[k]=(pkgMap[k]||0)+1;});
+
+  const chartCfg=(type,labels,data,opts)=>({type,data:{labels,datasets:[Object.assign({data,borderRadius:4,borderSkipped:false},opts)]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(30,45,69,0.8)'},ticks:{color:'#4a6080',font:{size:10}}},y:{grid:{color:'rgba(30,45,69,0.8)'},ticks:{color:'#4a6080',font:{size:10},callback:v=>v?'Rs.'+(v/1000).toFixed(0)+'k':'0'}}}}});
+
+  const dc=(id,ref,cfg)=>{const el=document.getElementById(id);if(!el)return null;destroyChart(ref);return new Chart(el,cfg);};
+  cRev=dc('chartRev',cRev,chartCfg('bar',months,mData,{backgroundColor:mData.map((_,i)=>i===now.getMonth()?'#00d4ff':'rgba(0,212,255,0.15)')}));
+  cSts=dc('chartStatus',cSts,{type:'doughnut',data:{labels:['Paid Full','Partial','Unpaid'],datasets:[{data:[pC,ptC,uC],backgroundColor:['#00e676','#f5c842','#ff4757'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'70%',plugins:{legend:{display:false}}}});
+  const leg=document.getElementById('status-legend');
+  if(leg){const tot=pC+ptC+uC||1;leg.innerHTML=[['#00e676','Paid Full',pC],['#f5c842','Partial',ptC],['#ff4757','Unpaid',uC]].map(([c,l,v])=>`<span style="display:flex;align-items:center;gap:5px;font-size:11px"><span style="width:8px;height:8px;border-radius:2px;background:${c};display:inline-block"></span><span style="color:var(--text2)">${l} <span style="color:var(--text3);font-family:'JetBrains Mono',monospace">${Math.round(v/tot*100)}%</span></span></span>`).join('');}
+  const pkgL=Object.keys(pkgMap),pkgD=Object.values(pkgMap);
+  if(pkgL.length)cPkg=dc('chartPkg',cPkg,{type:'bar',data:{labels:pkgL,datasets:[{data:pkgD,backgroundColor:'rgba(0,212,255,0.25)',borderColor:'#00d4ff',borderWidth:1,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(30,45,69,0.8)'},ticks:{color:'#4a6080',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#4a6080',font:{size:10}}}}}});
+  cYr=dc('chartYearly',cYr,chartCfg('bar',months,mData,{backgroundColor:mData.map((_,i)=>i===now.getMonth()?'#00bfa5':'rgba(0,191,165,0.2)')}));
+
+  // Reports charts
+  const pkgRevMap={};db.users.forEach(u=>{const k=(u.pkg||'?').split('—')[0].trim();pkgRevMap[k]=(pkgRevMap[k]||0)+u.pkgAmt;});
+  const pkgRL=Object.keys(pkgRevMap),pkgRD=Object.values(pkgRevMap);
+  if(pkgRL.length)cPkgRev=dc('chartPkgRev',cPkgRev,{type:'doughnut',data:{labels:pkgRL,datasets:[{data:pkgRD,backgroundColor:['#00d4ff','#f5c842','#00e676','#a855f7'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});
+  cMon=dc('chartMonthly',cMon,{type:'line',data:{labels:months.slice(0,now.getMonth()+1),datasets:[{data:mData.slice(0,now.getMonth()+1),borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,0.05)',fill:true,tension:0.4,pointBackgroundColor:'#00d4ff',pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(30,45,69,0.8)'},ticks:{color:'#4a6080',font:{size:10}}},y:{grid:{color:'rgba(30,45,69,0.8)'},ticks:{color:'#4a6080',font:{size:10},callback:v=>v?'Rs.'+(v/1000).toFixed(0)+'k':'0'}}}}});
+
+  // Method breakdown
+  const mb=document.getElementById('method-breakdown');
+  if(mb){const methods={};db.payments.forEach(p=>{const m=p.method||'Unknown';methods[m]=(methods[m]||0)+p.amount;});mb.innerHTML=Object.entries(methods).map(([m,v])=>`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;min-width:140px"><div style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;margin-bottom:5px">${m}</div><div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--gold)">Rs.${v.toLocaleString()}</div></div>`).join('')||'<div style="color:var(--text3);font-size:12px;font-family:\'JetBrains Mono\',monospace">No payment data</div>';}
+}
+
+// ===== INVOICE =====
+function previewInv(){
+  const uid=(document.getElementById('inv-user')||{}).value;
+  const u=db.users.find(x=>x.serial===uid);if(!u)return;
+  const dues=parseInt((document.getElementById('inv-dues')||{}).value)||0;
+  const extra=parseInt((document.getElementById('inv-extra')||{}).value)||0;
+  const total=(u.pkgAmt||0)+dues+extra;
+  const month=(document.getElementById('inv-month')||{}).value||'';
+  const setText=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setText('inv-num','INV-2026-'+(String(db.payments.length+1).padStart(4,'0')));
+  setText('inv-period',month);setText('inv-to',u.name);
+  setText('inv-sub',u.serial+' · '+u.pkg);
+  setText('inv-pkg-amt','Rs.'+(u.pkgAmt||0).toLocaleString());
+  setText('inv-ext-amt','Rs.'+extra.toLocaleString());
+  setText('inv-prev-amt','Rs.'+dues.toLocaleString());
+  setText('inv-total','Rs.'+total.toLocaleString());
+  const note=(document.getElementById('inv-note')||{}).value;
+  if(note)setText('inv-footer',note);
+}
+
+// ===== CSV =====
+function exportCSV(type){
+  let csv='',fn='';
+  if(type==='payments'){
+    const h=['Serial','User ID','Name','Amount','Date','Method','Month','Status','Remarks'];
+    csv=[h.join(','),...db.payments.map(p=>[p.serial,p.uid,p.name,p.amount,p.date,p.method,p.month,p.status,p.remarks].map(v=>'"'+(v??'').toString().replace(/"/g,'""')+'"').join(','))].join('\n');
+    fn='payments_'+new Date().toISOString().split('T')[0]+'.csv';
+  }else if(type==='users'){
+    const h=['Serial','Name','Father','Mobile','CNIC','Address','Package','Pkg Amount','Date','MAC','Wire','Status','Notes'];
+    csv=[h.join(','),...db.users.map(u=>[u.serial,u.name,u.father,u.mobile,u.cnic,u.address,u.pkg,u.pkgAmt,u.date,u.mac,u.wire,u.status,u.notes].map(v=>'"'+(v??'').toString().replace(/"/g,'""')+'"').join(','))].join('\n');
+    fn='users_'+new Date().toISOString().split('T')[0]+'.csv';
+  }else if(type==='yearly'){
+    const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const yr=new Date().getFullYear();
+    csv=['Month,Revenue,Count',...months.map((m,mi)=>{const ps=db.payments.filter(p=>{if(!p.date)return false;const d=new Date(p.date);return d.getMonth()===mi&&d.getFullYear()===yr;});return m+','+ps.reduce((s,p)=>s+(p.amount||0),0)+','+ps.length;})].join('\n');
+    fn='yearly_'+yr+'.csv';
+  }else if(type==='invoice'){
+    const uid=(document.getElementById('inv-user')||{}).value;
+    const u=db.users.find(x=>x.serial===uid);
+    if(!u){toast('Select user for invoice!','err');return;}
+    csv='Field,Value\n'+[['Invoice',document.getElementById('inv-num')?.textContent],['Customer',u.name],['Serial',u.serial],['Package',u.pkg],['Month',document.getElementById('inv-period')?.textContent],['Total',document.getElementById('inv-total')?.textContent]].map(([f,v])=>f+',"'+(v||'')+'"').join('\n');
+    fn='invoice_'+u.serial+'.csv';
+  }else if(type==='receipt_list'){
+    const h=['Serial','User ID','Name','Mobile','Amount','Date','Method','Month','Package','Status','Remarks'];
+    csv=[h.join(','),...(db.receipts||[]).map(r=>[r.serial,r.uid,r.name,r.mobile,r.amount,r.date,r.method,r.month,r.pkg,r.status,r.remarks].map(v=>'"'+(v??'').toString().replace(/"/g,'""')+'"').join(','))].join('\n');
+    fn='receipts_'+new Date().toISOString().split('T')[0]+'.csv';
+  }
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=fn;a.click();URL.revokeObjectURL(a.href);
+  toast('Downloaded: '+fn,'ok');
+}
+
+// ===== GOOGLE SHEETS =====
+function saveGsUrl(){
+  db.settings.gsUrl=(document.getElementById('gs-url')||{}).value||'';saveDB();
+  const s=document.getElementById('gs-status');
+  if(s)s.textContent=db.settings.gsUrl?'Sheets: Connected':'Sheets: —';
+  toast('URL saved!','ok');
+}
+
+async function testConn(){
+  const url=db.settings.gsUrl;if(!url){toast('Enter URL first!','err');return;}
+  try{const r=await fetch(url);const d=await r.json();if(d.status==='ok')toast('Connection OK! API ready.','ok');else toast('Connected: '+JSON.stringify(d));}
+  catch(e){toast('Connection failed: '+e.message,'err');}
+}
+
+async function syncAll(){
+  const url=db.settings.gsUrl;
+  if(!url){toast('Google Sheets URL setup karein!','err');showPage('gssetup',null);return;}
+  const log=document.getElementById('sync-log'),prog=document.getElementById('prog-bar'),fill=document.getElementById('prog-fill');
+  if(log){log.style.display='block';log.textContent='[SYNC] Starting...\n';}
+  if(prog)prog.style.display='block';
+  if(fill)fill.style.width='30%';
+  toast('Syncing to Google Sheets...');
+  try{
+    const uP={headers:['Serial','Name','Father','Mobile','CNIC','Address','Package','Pkg Amount','Date','MAC','Wire','Status','Notes'],rows:db.users.map(u=>[u.serial,u.name,u.father,u.mobile,u.cnic,u.address,u.pkg,u.pkgAmt,u.date,u.mac,u.wire,u.status,u.notes])};
+    const pP={headers:['Serial','User ID','Name','Amount','Date','Method','Month','Status','Remarks'],rows:db.payments.map(p=>[p.serial,p.uid,p.name,p.amount,p.date,p.method,p.month,p.status,p.remarks])};
+    if(fill)fill.style.width='60%';
+    const syncUrl=url+'?action=sync&users='+encodeURIComponent(JSON.stringify(uP))+'&payments='+encodeURIComponent(JSON.stringify(pP));
+    const r=await fetch(syncUrl);const d=await r.json();
+    if(fill)fill.style.width='100%';
+    db.settings.lastSync=new Date().toISOString();saveDB();
+    const msg=d.success?`[SYNC] Complete!\n[USERS] ${d.users} rows synced\n[PAYMENTS] ${d.payments} rows synced\n[TIME] ${new Date().toLocaleTimeString()}`:`[ERROR] ${d.error}`;
+    if(log)log.textContent=msg;
+    toast(d.success?'Sync complete! Users:'+d.users+' Payments:'+d.payments:'Sync failed: '+d.error,d.success?'ok':'err');
+    setTimeout(()=>{if(prog)prog.style.display='none';if(fill)fill.style.width='0%';},2000);
+  }catch(e){
+    if(log)log.textContent='[ERROR] '+e.message;if(prog)prog.style.display='none';
+    toast('Sync error: '+e.message,'err');
+  }
+}
+
+function copyCode(){navigator.clipboard.writeText(APPS_SCRIPT_CODE).then(()=>toast('Code copied!','ok')).catch(()=>toast('Select manually','err'));}
+
+// ===== HELPERS =====
+
+
+// ===== RECEIPT CHARTS =====
+function drawReceiptCharts(){
+  if(!db.receipts)db.receipts=[];
+  const rcpts=db.receipts;
+  const now=new Date();
+  const curMonth=now.toLocaleString('default',{month:'long'});
+
+  // Mini stats
+  const totalAmt=rcpts.reduce((s,r)=>s+(r.amount||0),0);
+  const paidCount=rcpts.filter(r=>r.status==='Paid Full').length;
+  const monthCount=rcpts.filter(r=>r.month&&r.month.includes(curMonth)).length;
+  const setText=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setText('rc-total-count',rcpts.length);
+  setText('rc-total-amt','Rs.'+totalAmt.toLocaleString());
+  setText('rc-paid-count',paidCount);
+  setText('rc-month-count',monthCount);
+
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const dc=(id,ref,cfg)=>{const el=document.getElementById(id);if(!el)return null;destroyChart(ref);return new Chart(el,cfg);};
+  const gridColor='rgba(30,45,69,0.8)';
+  const tickColor='#4a6080';
+  const baseScales={x:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10}}},y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10}}}};
+
+  // 1. Monthly collection bar
+  const mData=months.map((_,mi)=>rcpts.filter(r=>{if(!r.date)return false;const d=new Date(r.date);return d.getMonth()===mi&&d.getFullYear()===now.getFullYear();}).reduce((s,r)=>s+(r.amount||0),0));
+  cRcptM=dc('chartRcptMonthly',cRcptM,{type:'bar',data:{labels:months,datasets:[{data:mData,backgroundColor:mData.map((_,i)=>i===now.getMonth()?'#00d4ff':'rgba(0,212,255,0.18)'),borderColor:mData.map((_,i)=>i===now.getMonth()?'#00d4ff':'rgba(0,212,255,0.35)'),borderWidth:1,borderRadius:5,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'Rs.'+ctx.parsed.y.toLocaleString()}}},scales:{x:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10}}},y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},callback:v=>v?'Rs.'+(v/1000).toFixed(0)+'k':'0'}}}}});
+
+  // 2. Method donut
+  const methodMap={};rcpts.forEach(r=>{const m=r.method||'Cash';methodMap[m]=(methodMap[m]||0)+1;});
+  const mLabels=Object.keys(methodMap),mVals=Object.values(methodMap);
+  const mColors=['#00d4ff','#f5c842','#00e676','#a855f7','#ff4757'];
+  cRcptMeth=dc('chartRcptMethod',cRcptMeth,{type:'doughnut',data:{labels:mLabels,datasets:[{data:mVals,backgroundColor:mColors.slice(0,mLabels.length),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.parsed+' receipts'}}}}});
+  const mleg=document.getElementById('method-legend');
+  if(mleg)mleg.innerHTML=mLabels.map((l,i)=>`<span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)"><span style="width:7px;height:7px;border-radius:2px;background:${mColors[i]};display:inline-block"></span>${l}</span>`).join('');
+
+  // 3. Status bar
+  const paid=rcpts.filter(r=>r.status==='Paid Full').length;
+  const partial=rcpts.filter(r=>r.status==='Partial Payment').length;
+  const advance=rcpts.filter(r=>r.status==='Advance').length;
+  cRcptSts=dc('chartRcptStatus',cRcptSts,{type:'bar',data:{labels:['Paid Full','Partial','Advance'],datasets:[{data:[paid,partial,advance],backgroundColor:['rgba(0,230,118,0.25)','rgba(245,200,66,0.25)','rgba(168,85,247,0.25)'],borderColor:['#00e676','#f5c842','#a855f7'],borderWidth:1.5,borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:tickColor,font:{size:10}}},y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},stepSize:1}}}}});
+  const sleg=document.getElementById('rcpt-status-legend');
+  if(sleg)sleg.innerHTML=[['#00e676','Paid',paid],['#f5c842','Partial',partial],['#a855f7','Advance',advance]].map(([c,l,v])=>`<span style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2)"><span style="width:7px;height:7px;border-radius:2px;background:${c};display:inline-block"></span>${l}: ${v}</span>`).join('');
+
+  // 4. Top users horizontal bar
+  const userAmt={};rcpts.forEach(r=>{if(r.name)userAmt[r.name]=(userAmt[r.name]||0)+(r.amount||0);});
+  const sorted=Object.entries(userAmt).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  cRcptTop=dc('chartRcptTopUsers',cRcptTop,{type:'bar',data:{labels:sorted.map(([n])=>n.split(' ')[0]),datasets:[{data:sorted.map(([,v])=>v),backgroundColor:'rgba(245,200,66,0.2)',borderColor:'#f5c842',borderWidth:1.5,borderRadius:5,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'Rs.'+ctx.parsed.x.toLocaleString()}}},scales:{x:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},callback:v=>'Rs.'+(v/1000).toFixed(0)+'k'}},y:{grid:{display:false},ticks:{color:tickColor,font:{size:10}}}}}});
+
+  // 5. Trend line — last 7 days
+  const days=[];const dayAmts=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(now);d.setDate(d.getDate()-i);
+    const label=d.toLocaleDateString('default',{weekday:'short',day:'numeric'});
+    const dayStr=d.toISOString().split('T')[0];
+    const amt=rcpts.filter(r=>r.date===dayStr).reduce((s,r)=>s+(r.amount||0),0);
+    days.push(label);dayAmts.push(amt);
+  }
+  cRcptTrend=dc('chartRcptTrend',cRcptTrend,{type:'line',data:{labels:days,datasets:[{data:dayAmts,borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,0.06)',fill:true,tension:0.4,pointBackgroundColor:'#00d4ff',pointBorderColor:'var(--bg)',pointRadius:4,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'Rs.'+ctx.parsed.y.toLocaleString()}}},scales:{x:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10}}},y:{grid:{color:gridColor},ticks:{color:tickColor,font:{size:10},callback:v=>v?'Rs.'+(v/1000).toFixed(0)+'k':'0'}}}}});
+}
+
+
+
+// ===== WHATSAPP =====
+let waCurrentTemplate = 'reminder';
+let waFilter = 'all';
+let waSentToday = 0;
+
+const WA_TEMPLATES = {
+  reminder: 'Assalam o Alaikum {name} bhai,\nAapka {month} ka internet bill Rs.{amount} pending hai.\nJald payment karein. Shukriya! 🙏\n— SUPER-BILLING ISP',
+  receipt:  'Assalam o Alaikum {name} bhai,\nAapki payment Rs.{amount} haasil ho gayi. ✅\nReceipt No: {serial}\nShukriya aapki trust ke liye!\n— SUPER-BILLING ISP',
+  due:      '⚠️ {name} bhai, aapka bill Rs.{amount} abhi tak nahi aaya.\nAal tak payment na hone par connection band ho sakta hai.\nPlease rabta karein: 0300-0000000\n— SUPER-BILLING ISP',
+  welcome:  '🎉 {name} bhai, SUPER-BILLING mein khush aamdeed!\nAapka {pkg} package activate ho gaya hai.\nUser ID: {serial}\nKoi bhi masla ho: 0300-0000000\n— SUPER-BILLING ISP',
+  custom:   ''
+};
+
+function selectTemplate(tpl){
+  waCurrentTemplate = tpl;
+  document.querySelectorAll('.wa-template-card').forEach(c=>c.classList.remove('selected'));
+  const el=document.getElementById('tpl-'+tpl);if(el)el.classList.add('selected');
+  const cw=document.getElementById('custom-msg-wrap');
+  if(cw)cw.style.display=tpl==='custom'?'flex':'none';
+  updateWaPreview();
+}
+
+function getWaMessage(u, tplOverride){
+  const tpl = tplOverride || waCurrentTemplate;
+  let msg = tpl==='custom'
+    ? (document.getElementById('custom-msg')||{}).value || ''
+    : WA_TEMPLATES[tpl] || '';
+  const now=new Date();
+  const curMonth=now.toLocaleString('default',{month:'long'})+' '+now.getFullYear();
+  const pmts=db.payments.filter(p=>p.uid===u.serial);
+  const lastPmt=pmts.length?pmts[pmts.length-1]:null;
+  const lastRcpt=db.receipts&&db.receipts.filter(r=>r.uid===u.serial).slice(-1)[0];
+  msg=msg.replace(/{name}/g, u.name||'Customer');
+  msg=msg.replace(/{month}/g, curMonth);
+  msg=msg.replace(/{amount}/g, 'Rs.'+(u.pkgAmt||0).toLocaleString());
+  msg=msg.replace(/{serial}/g, lastRcpt?lastRcpt.serial:(u.serial||'—'));
+  msg=msg.replace(/{pkg}/g, u.pkg||'—');
+  msg=msg.replace(/{mobile}/g, u.mobile||'—');
+  return msg;
+}
+
+function waLink(mobile, msg){
+  const num = mobile.replace(/[^0-9]/g,'');
+  const intl = num.startsWith('0') ? '92'+num.slice(1) : num;
+  return 'https://wa.me/'+intl+'?text='+encodeURIComponent(msg);
+}
+
+
+function quickWaSend(serial){
+  const u = db.users.find(x=>x.serial===serial);
+  if(!u||!u.mobile){toast('Mobile number nahi hai! Pehle user mein mobile add karein.','err');return;}
+  const tpl = waCurrentTemplate || 'reminder';
+  const msg = getWaMessage(u, tpl);
+  const link = waLink(u.mobile, msg);
+  window.open(link,'_blank');
+  logWaSend(u.serial, u.name);
+}
+
+function updateWaPreview(){
+  const nameInp=(document.getElementById('wa-preview-name')||{}).value;
+  const fakeUser={name:nameInp||'Ali Khan',serial:'USR-0001',pkg:'10 Mbps — Rs.1,500/mo',pkgAmt:1500,mobile:'03001234567'};
+  const msg=getWaMessage(fakeUser);
+  const el=document.getElementById('wa-preview-msg');
+  if(el)el.innerHTML=msg.split('\n').join('<br/>');
+  const now=new Date();
+  const tEl=document.getElementById('wa-preview-time');
+  if(tEl)tEl.textContent=now.toLocaleTimeString('default',{hour:'2-digit',minute:'2-digit'});
+}
+
+function renderWaUsers(){
+  if(!db.receipts)db.receipts=[];
+  const now=new Date();
+  const curMonth=now.toLocaleString('default',{month:'long'});
+  const q=(document.getElementById('wa-search')||{}).value.toLowerCase()||'';
+
+  let users=db.users.filter(u=>{
+    if(q&&![u.name,u.serial,u.mobile].some(v=>(v||'').toLowerCase().includes(q)))return false;
+    if(waFilter==='unpaid'){
+      return !db.payments.find(p=>p.uid===u.serial&&p.month&&p.month.includes(curMonth)&&p.status==='Paid Full');
+    }
+    if(waFilter==='active') return u.status==='Active';
+    return true;
+  });
+
+  const cnt=document.getElementById('wa-user-count');if(cnt)cnt.textContent=users.length;
+  const list=document.getElementById('wa-users-list');if(!list)return;
+
+  if(!users.length){list.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px;font-family:\'JetBrains Mono\',monospace">No users found</div>';return;}
+
+  list.innerHTML=users.map(u=>{
+    const ini=(u.name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const hasMob=!!(u.mobile&&u.mobile.trim());
+    const pmts=db.payments.filter(p=>p.uid===u.serial&&p.month&&p.month.includes(curMonth));
+    const isPaid=pmts.some(p=>p.status==='Paid Full');
+    const statusBadge=isPaid?'<span class="badge b-paid">Paid</span>':'<span class="badge b-unpaid">Unpaid</span>';
+
+    return `<div class="wa-user-row">
+      <div class="av" style="border-radius:10px;background:rgba(37,211,102,0.1);color:#25d366">${ini}</div>
+      <div class="uinfo">
+        <div class="uname" style="font-size:12px">${u.name} ${statusBadge}</div>
+        <div class="umeta">${u.mobile||'<span style="color:var(--red)">No mobile!</span>'} · ${u.pkg||'—'}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
+        ${hasMob
+          ? `<a href="${link}" target="_blank" class="wa-btn btn-sm" onclick="logWaSend('${u.serial}','${u.name.replace(/'/g,"\'")}')" style="padding:6px 10px;font-size:11px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              Send
+            </a>`
+          : `<span style="font-size:11px;color:var(--red);font-family:'JetBrains Mono',monospace">No mobile</span>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function waFilterUsers(f){
+  waFilter=f;
+  ['all','unpaid','active'].forEach(t=>{
+    const el=document.getElementById('waf-'+t);
+    if(el)el.style.color=t===f?'var(--cyan)':'';
+  });
+  renderWaUsers();
+}
+
+function logWaSend(uid, name){
+  waSentToday++;
+  const el=document.getElementById('wa-sent');if(el)el.textContent=waSentToday;
+  if(!db.waLog)db.waLog=[];
+  const entry={uid,name,template:waCurrentTemplate,time:new Date().toISOString()};
+  db.waLog.unshift(entry);
+  if(db.waLog.length>100)db.waLog=db.waLog.slice(0,100);
+  saveDB();
+  renderWaLog();
+  toast(name+' ko WhatsApp message bheja!','ok');
+}
+
+function renderWaLog(){
+  const el=document.getElementById('wa-log');if(!el)return;
+  if(!db.waLog||!db.waLog.length){
+    el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:14px;font-family:\'JetBrains Mono\',monospace">Koi message nahi bheja gaya</div>';
+    return;
+  }
+  el.innerHTML=db.waLog.slice(0,20).map(e=>{
+    const d=new Date(e.time);
+    const tStr=d.toLocaleDateString('default',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('default',{hour:'2-digit',minute:'2-digit'});
+    const tplNames={reminder:'Reminder',receipt:'Receipt',due:'Warning',welcome:'Welcome',custom:'Custom'};
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+      <div class="wa-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#25d366" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500;color:var(--text)">${e.name}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace">${tplNames[e.template]||e.template} · ${tStr}</div>
+      </div>
+      <span style="font-size:10px;color:#25d366;font-family:'JetBrains Mono',monospace">Sent ✓</span>
+    </div>`;
+  }).join('');
+}
+
+function clearWaLog(){
+  db.waLog=[];saveDB();renderWaLog();toast('Log cleared');
+}
+
+function waSendAll(tplName){
+  const now=new Date();
+  const curMonth=now.toLocaleString('default',{month:'long'});
+  let users=db.users.filter(u=>u.mobile&&u.mobile.trim());
+  if(tplName==='reminder'){
+    users=users.filter(u=>!db.payments.find(p=>p.uid===u.serial&&p.month&&p.month.includes(curMonth)&&p.status==='Paid Full'));
+  }
+  if(!users.length){toast('Koi eligible user nahi (mobile number check karein)','err');return;}
+  if(!confirm(users.length+' users ko WhatsApp message bhejein? Har user ke liye ek ek WhatsApp tab khulega.')){return;}
+  selectTemplate(tplName||waCurrentTemplate);
+  users.forEach((u,i)=>{
+    setTimeout(()=>{
+      const savedTpl = waCurrentTemplate;
+      waCurrentTemplate = tplName || waCurrentTemplate;
+      const msg = getWaMessage(u);
+      const link = waLink(u.mobile, msg);
+      waCurrentTemplate = savedTpl;
+      window.open(link,'_blank');
+      logWaSend(u.serial, u.name);
+    },i*1000);
+  });
+  toast(users.length+' messages bheje ja rahe hain...','ok');
+}
+
+function updateWaStats(){
+  const now=new Date();
+  const curMonth=now.toLocaleString('default',{month:'long'});
+  const withMob=db.users.filter(u=>u.mobile&&u.mobile.trim()).length;
+  const unpaid=db.users.filter(u=>!db.payments.find(p=>p.uid===u.serial&&p.month&&p.month.includes(curMonth)&&p.status==='Paid Full')).length;
+  const setText=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  setText('wa-total-users',db.users.length);
+  setText('wa-with-mobile',withMob);
+  setText('wa-unpaid',unpaid);
+  setText('wa-sent',waSentToday);
+}
+
+
+// ===== MOBILE NAV =====
+function setMobTab(activeId){
+  document.querySelectorAll('.mob-tab').forEach(t=>t.classList.remove('active'));
+  const el=document.getElementById(activeId);
+  if(el)el.classList.add('active');
+}
+function openMobDrawer(){
+  const d=document.getElementById('mob-drawer');
+  if(d)d.classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeMobDrawer(){
+  const d=document.getElementById('mob-drawer');
+  if(d)d.classList.remove('open');
+  document.body.style.overflow='';
+}
+function updateMobBadges(){
+  const pb=document.getElementById('mob-pmt-badge');
+  if(pb)pb.textContent=db.payments.length;
+  const now=new Date();
+  const curMonth=now.toLocaleString('default',{month:'long'});
+  const unpaid=db.users.filter(u=>!db.payments.find(p=>p.uid===u.serial&&p.month&&p.month.includes(curMonth)&&p.status==='Paid Full')).length;
+  ['mob-unpaid-badge','drawer-unpaid-badge'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){if(unpaid>0){el.textContent=unpaid;el.style.display='';}else{el.style.display='none';}}
+  });
+  const mrc=document.getElementById('mob-rec-count');
+  if(mrc)mrc.textContent='Records: '+(db.users.length+db.payments.length);
+}
+
+// ===== RECEIPT =====
+function nextR(){db.meta.rs=(db.meta.rs||0)+1;saveDB();return 'RCP-2026-'+(String(db.meta.rs).padStart(4,'0'));}
+function updateRcptSerial(){const el=document.getElementById('rcpt-serial-tag');if(el)el.textContent='RCP-2026-'+(String((db.meta.rs||0)+1).padStart(4,'0'))+' (next)';}
+
+function refreshReceiptDropdown(){
+  const el=document.getElementById('r-uid');if(!el)return;
+  const v=el.value;el.innerHTML='<option value="">-- Select User --</option>';
+  db.users.forEach(u=>{const o=document.createElement('option');o.value=u.serial;o.textContent=u.name+' — '+u.serial;el.appendChild(o);});
+  el.value=v;
+}
+
+function fillReceiptUser(){
+  const uid=document.getElementById('r-uid').value;
+  const u=db.users.find(x=>x.serial===uid);
+  if(u){
+    const g=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v||'';};
+    g('r-name',u.name);g('r-mobile',u.mobile);g('r-address',u.address);g('r-pkg',u.pkg);
+    updateReceiptPreview();
+  }
+}
+
+function updateReceiptPreview(){
+  const g=id=>(document.getElementById(id)||{}).value||'';
+  const setText=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  const uid=g('r-uid');const u=db.users.find(x=>x.serial===uid);
+  const amt=parseInt(g('r-amount'))||0;
+  const status=g('r-status')||'Paid Full';
+  const serial=g('r-serial')||'RCP-2026-'+(String((db.meta.rs||0)+1).padStart(4,'0'));
+  const remarks=g('r-remarks');
+
+  setText('r-preview-serial',serial);
+  setText('r-preview-date',g('r-date')||'—');
+  setText('r-preview-name',u?u.name:'—');
+  setText('r-preview-meta',u?(u.serial+' · '+u.pkg+' · '+(u.mobile||'')):'Select user to generate receipt');
+  setText('r-preview-amount','Rs. '+amt.toLocaleString());
+  setText('r-preview-method',g('r-method')||'Cash');
+  setText('r-preview-month',g('r-month')||'—');
+  setText('r-preview-pkg',u?u.pkg:'—');
+  setText('r-preview-uid',uid||'—');
+
+  const sts=document.getElementById('r-preview-status');
+  if(sts){
+    const bc=status==='Paid Full'?'b-paid':status==='Partial Payment'?'b-partial':'b-unpaid';
+    sts.innerHTML='<span class="badge '+bc+'">'+status+'</span>';
+  }
+  const rw=document.getElementById('r-preview-remarks-wrap');
+  const rt=document.getElementById('r-preview-remarks');
+  if(rw&&rt){if(remarks){rw.style.display='block';rt.textContent=remarks;}else{rw.style.display='none';}}
+}
+
+function saveReceipt(){
+  const g=id=>(document.getElementById(id)||{}).value||'';
+  const uid=g('r-uid');const name=g('r-name').trim();const amt=g('r-amount');
+  if(!uid){toast('Select a user!','err');return;}
+  if(!amt||parseInt(amt)<=0){toast('Enter amount!','err');return;}
+  if(!db.receipts)db.receipts=[];
+  const serial=g('r-serial').trim()||nextR();
+  const rcpt={serial,uid,name,mobile:g('r-mobile'),address:g('r-address'),pkg:g('r-pkg'),amount:parseInt(amt)||0,date:g('r-date')||new Date().toISOString().split('T')[0],method:g('r-method'),month:g('r-month'),status:g('r-status'),remarks:g('r-remarks'),added:new Date().toISOString()};
+  db.receipts.push(rcpt);
+  // Also add to payments
+  db.payments.push({serial:'PMT-'+serial,uid,name,amount:rcpt.amount,date:rcpt.date,method:rcpt.method,month:rcpt.month,status:rcpt.status,remarks:rcpt.remarks+' [Receipt:'+serial+']',added:rcpt.added});
+  saveDB();renderReceipts();drawReceiptCharts();updateRcptSerial();updateNavBadges();updateDashboard();
+  toast('Receipt '+serial+' issued!','ok');
+  const rcptUser=db.users.find(x=>x.serial===rcpt.uid);
+  if(rcptUser&&rcptUser.mobile){
+    setTimeout(()=>{
+      if(confirm(rcptUser.name+' ko WhatsApp receipt bhejein?')){
+        const rcptMsg = getWaMessage(rcptUser,'receipt');
+        const rcptHref = waLink(rcptUser.mobile, rcptMsg);
+        window.open(rcptHref,'_blank');
+        logWaSend(rcptUser.serial, rcptUser.name);
+      }
+    },400);
+  }
+  updateReceiptPreview();
+}
+
+function renderReceipts(){
+  if(!db.receipts)db.receipts=[];
+  const list=document.getElementById('rcpt-list');
+  const cnt=document.getElementById('rcpt-count');
+  if(cnt)cnt.textContent=db.receipts.length;
+  if(!list)return;
+  if(!db.receipts.length){list.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:14px;font-family:\'JetBrains Mono\',monospace">No receipts issued yet</div>';return;}
+  list.innerHTML=[...db.receipts].reverse().slice(0,6).map(r=>{
+    const bc=r.status==='Paid Full'?'b-paid':r.status==='Partial Payment'?'b-partial':'b-unpaid';
+    return `<div class="urow" style="padding:10px 0"><div class="av" style="width:32px;height:32px;font-size:10px;border-radius:6px;background:rgba(0,212,255,0.1);color:var(--cyan)">${(r.name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase()}</div><div class="uinfo"><div class="uname" style="font-size:12px">${r.name} <span style="font-size:10px;color:var(--cyan);font-family:'JetBrains Mono',monospace;margin-left:4px">${r.serial}</span></div><div class="umeta">Rs.${r.amount.toLocaleString()} · ${r.date||'—'} · ${r.method}</div></div><span class="badge ${bc}" style="flex-shrink:0">${r.status}</span></div>`;
+  }).join('');
+}
+
+function clearReceiptForm(){
+  clearIds(['r-serial','r-name','r-mobile','r-address','r-pkg','r-amount','r-remarks']);
+  document.getElementById('r-uid').value='';
+  updateReceiptPreview();
+}
+
+function printReceipt(){
+  const box=document.getElementById('receipt-preview-box');
+  if(!box){toast('Generate a receipt first!','err');return;}
+  const w=window.open('','_blank','width=420,height=650');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Receipt</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{background:#fff;font-family:sans-serif;color:#111;width:380px;margin:0 auto}
+  .cyan{color:#0099cc}.gold{color:#b8860b}.mono{font-family:'JetBrains Mono',monospace}
+  .header{background:#00d4ff;padding:20px 24px}.logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:900;color:#000}
+  .sub{font-size:9px;color:rgba(0,0,0,0.5);letter-spacing:1.5px;margin-top:2px}
+  .body{padding:20px 24px}.row{display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #eee}
+  .lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+  .val{font-size:13px;font-weight:600;color:#111}.big{text-align:center;padding:16px;background:#f0fbff;border-radius:6px;margin:14px 0;border:1px solid #cce}
+  .big .lbl{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px}
+  .big .val{font-family:'Syne',sans-serif;font-size:30px;font-weight:900;color:#0099cc}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+  .grid-item{background:#f8f8f8;border-radius:4px;padding:10px}
+  .footer{padding:14px 24px;border-top:1px dashed #ddd;text-align:center;font-size:9px;color:#aaa;letter-spacing:1.5px;font-family:'JetBrains Mono',monospace}
+  </style></head><body>`);
+  w.document.write('<div class="header"><div class="logo">SUPER-BILLING</div><div class="sub">PAYMENT RECEIPT</div></div>');
+  w.document.write('<div class="body">');
+  w.document.write('<div class="row"><div><div class="lbl">Receipt No.</div><div class="val mono cyan">'+document.getElementById('r-preview-serial').textContent+'</div></div><div style="text-align:right"><div class="lbl">Date</div><div class="val mono">'+document.getElementById('r-preview-date').textContent+'</div></div></div>');
+  w.document.write('<div style="padding:12px;background:#f8f8f8;border-radius:6px;margin-bottom:14px"><div class="lbl">Received From</div><div style="font-family:Syne,sans-serif;font-size:16px;font-weight:900;color:#111;margin-top:4px">'+document.getElementById('r-preview-name').textContent+'</div><div class="mono" style="font-size:10px;color:#888;margin-top:3px">'+document.getElementById('r-preview-meta').textContent+'</div></div>');
+  w.document.write('<div class="big"><div class="lbl">Amount Received</div><div class="val">'+document.getElementById('r-preview-amount').textContent+'</div></div>');
+  w.document.write('<div class="grid"><div class="grid-item"><div class="lbl">Method</div><div class="val">'+document.getElementById('r-preview-method').textContent+'</div></div><div class="grid-item"><div class="lbl">Month</div><div class="val">'+document.getElementById('r-preview-month').textContent+'</div></div><div class="grid-item"><div class="lbl">Package</div><div class="val" style="font-size:11px">'+document.getElementById('r-preview-pkg').textContent+'</div></div><div class="grid-item"><div class="lbl">User ID</div><div class="val mono cyan" style="font-size:11px">'+document.getElementById('r-preview-uid').textContent+'</div></div></div>');
+  const rmk=document.getElementById('r-preview-remarks').textContent;if(rmk)w.document.write('<div style="padding:10px 12px;background:#fffbf0;border-left:3px solid #f5c842;border-radius:4px;margin-bottom:14px;font-size:12px;color:#555">'+rmk+'</div>');
+  w.document.write('</div>');
+  w.document.write('<div class="footer"><div>SUPER-BILLING ISP · Lahore · 0300-0000000</div><div style="margin-top:4px">THANK YOU FOR YOUR PAYMENT</div></div>');
+  w.document.write('</body></html>');
+  w.document.close();
+  setTimeout(()=>w.print(),600);
+}
+
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(t=>t.classList.remove('active'));
+  updateMobBadges();
+  const pg=document.getElementById(id);if(pg)pg.classList.add('active');
+  if(el)el.classList.add('active');
+  if(['dash','history','reports'].includes(id)){updateDashboard();}
+  if(id==='payment')renderPayments();
+  if(id==='history')renderUsers();
+  if(id==='whatsapp'){renderWaUsers();updateWaStats();renderWaLog();updateWaPreview();}
+  if(id==='receipt'){refreshReceiptDropdown();renderReceipts();updateRcptSerial();drawReceiptCharts();const today=new Date().toISOString().split('T')[0];const rd=document.getElementById('r-date');if(rd&&!rd.value)rd.value=today;}
+  if(id==='gssetup'){
+    const sc=document.getElementById('script-display');if(sc)sc.textContent=APPS_SCRIPT_CODE;
+    const gu=document.getElementById('gs-url');if(gu)gu.value=db.settings.gsUrl||'';
+  }
+}
+function clearIds(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el){if(el.tagName==='SELECT')el.selectedIndex=0;else el.value='';}});}
+function handleUpload(inp,boxId,lblId){if(inp.files[0]){document.getElementById(lblId).textContent=inp.files[0].name;document.getElementById(boxId).classList.add('has-file');}}
+function tick(){const el=document.getElementById('live-clock');if(el){const d=new Date();el.textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');}}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  tick();setInterval(tick,1000);
+  updateSerials();updateNavBadges();refreshDropdowns();updateDashboard();
+  document.getElementById('rec-count').textContent='Records: '+(db.users.length+db.payments.length);
+  const gu=document.getElementById('gs-url');if(gu)gu.value=db.settings.gsUrl||'';
+  const sc=document.getElementById('script-display');if(sc)sc.textContent=APPS_SCRIPT_CODE;
+  const today=new Date().toISOString().split('T')[0];
+  if(!db.receipts)db.receipts=[];
+  refreshReceiptDropdown();updateRcptSerial();updateMobBadges();
+  ['p-date','u-date','inv-due','r-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=today;});
+  const gs=document.getElementById('gs-status');if(gs)gs.textContent=db.settings.gsUrl?'Sheets: Connected':'Sheets: —';
+});
+</script>
+</body>
+</html>
